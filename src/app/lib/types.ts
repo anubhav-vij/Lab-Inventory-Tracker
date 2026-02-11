@@ -1,9 +1,12 @@
 export type TransactionType = 'consumption' | 'addition' | 'adjustment';
 
+export type MaterialUnit = 'mL' | 'L' | 'mg' | 'g' | 'kg' | 'units' | 'µL' | 'vials' | 'bottles';
+
 export interface Aliquot {
   id: string;
   count: number;
   size: number;
+  unit: MaterialUnit;
 }
 
 export interface Material {
@@ -16,8 +19,9 @@ export interface Material {
   submissionDate: string;
   storageCondition: string;
   submittedVolume: number;
-  unit: 'mL' | 'L' | 'mg' | 'g' | 'kg' | 'units' | 'µL' | 'vials' | 'bottles';
+  unit: MaterialUnit;
   retainAmount: number;
+  retainUnit: MaterialUnit;
   aliquots: Aliquot[];
   currentQuantity: number;
   labelInfo: string;

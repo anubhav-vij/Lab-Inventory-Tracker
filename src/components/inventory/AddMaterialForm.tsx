@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Material, Aliquot } from "@/app/lib/types";
+import { Material, Aliquot, MaterialUnit } from "@/app/lib/types";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,8 @@ interface AddMaterialFormProps {
   onCancel: () => void;
 }
 
+const UNITS: MaterialUnit[] = ['mL', 'L', 'µL', 'mg', 'g', 'kg', 'units', 'vials', 'bottles'];
+
 export function AddMaterialForm({ onSave, onCancel }: AddMaterialFormProps) {
   const [currentLocation, setCurrentLocation] = React.useState("");
   const [formData, setFormData] = React.useState({
@@ -33,8 +35,9 @@ export function AddMaterialForm({ onSave, onCancel }: AddMaterialFormProps) {
     submissionDate: new Date().toISOString().split('T')[0],
     storageCondition: "Ambient",
     submittedVolume: 0,
-    unit: "mL" as any,
+    unit: "mL" as MaterialUnit,
     retainAmount: 0,
+    retainUnit: "mL" as MaterialUnit,
     aliquots: [] as Aliquot[],
     currentQuantity: 0,
     labelInfo: "",
@@ -75,7 +78,8 @@ export function AddMaterialForm({ onSave, onCancel }: AddMaterialFormProps) {
     const newAliquot: Aliquot = {
       id: Math.random().toString(36).substr(2, 9),
       count: 0,
-      size: 0
+      size: 0,
+      unit: formData.unit
     };
     setFormData({
       ...formData,
@@ -90,12 +94,11 @@ export function AddMaterialForm({ onSave, onCancel }: AddMaterialFormProps) {
     });
   };
 
-  const updateAliquot = (id: string, field: 'count' | 'size', value: string) => {
-    const numValue = value === "" ? 0 : parseFloat(value);
+  const updateAliquot = (id: string, field: keyof Aliquot, value: any) => {
     setFormData({
       ...formData,
       aliquots: formData.aliquots.map(a => 
-        a.id === id ? { ...a, [field]: isNaN(numValue) ? 0 : numValue } : a
+        a.id === id ? { ...a, [field]: value } : a
       )
     });
   };
@@ -256,63 +259,75 @@ export function AddMaterialForm({ onSave, onCancel }: AddMaterialFormProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="volume">Submitted Volume</Label>
-                  <Input 
-                    id="volume" 
-                    type="number" 
-                    step="0.01" 
-                    placeholder="1982.00"
-                    value={formData.submittedVolume || ""}
-                    onChange={(e) => setFormData({...formData, submittedVolume: parseFloat(e.target.value) || 0})}
-                    required 
-                  />
+                  <div className="flex gap-2">
+                    <Input 
+                      id="volume" 
+                      type="number" 
+                      step="0.01" 
+                      placeholder="1982.00"
+                      value={formData.submittedVolume || ""}
+                      onChange={(e) => setFormData({...formData, submittedVolume: parseFloat(e.target.value) || 0})}
+                      required 
+                      className="flex-1"
+                    />
+                    <Select 
+                      value={formData.unit} 
+                      onValueChange={(v) => setFormData({...formData, unit: v as MaterialUnit})}
+                    >
+                      <SelectTrigger className="w-[110px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="unit">Unit</Label>
-                  <Select 
-                    value={formData.unit} 
-                    onValueChange={(v) => setFormData({...formData, unit: v as any})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="mL">mL</SelectItem>
-                      <SelectItem value="L">L</SelectItem>
-                      <SelectItem value="µL">µL</SelectItem>
-                      <SelectItem value="mg">mg</SelectItem>
-                      <SelectItem value="g">g</SelectItem>
-                      <SelectItem value="kg">kg</SelectItem>
-                      <SelectItem value="units">units</SelectItem>
-                      <SelectItem value="vials">vials</SelectItem>
-                      <SelectItem value="bottles">bottles</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="currentQty">Available Volume (Current)</Label>
+                  <div className="flex gap-2">
+                    <Input 
+                      id="currentQty" 
+                      type="number" 
+                      step="0.01" 
+                      placeholder="1950.00"
+                      value={formData.currentQuantity || ""}
+                      onChange={(e) => setFormData({...formData, currentQuantity: parseFloat(e.target.value) || 0})}
+                      required
+                      className="flex-1"
+                    />
+                    <div className="w-[110px] flex items-center px-3 text-sm text-muted-foreground bg-muted rounded-md border">
+                      {formData.unit}
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="retain">Retain Amount</Label>
-                  <Input 
-                    id="retain" 
-                    type="number" 
-                    step="0.01" 
-                    placeholder="100.00"
-                    value={formData.retainAmount || ""}
-                    onChange={(e) => setFormData({...formData, retainAmount: parseFloat(e.target.value) || 0})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="currentQty">Available Volume (Current)</Label>
-                  <Input 
-                    id="currentQty" 
-                    type="number" 
-                    step="0.01" 
-                    placeholder="1950.00"
-                    value={formData.currentQuantity || ""}
-                    onChange={(e) => setFormData({...formData, currentQuantity: parseFloat(e.target.value) || 0})}
-                    required
-                  />
+                  <div className="flex gap-2">
+                    <Input 
+                      id="retain" 
+                      type="number" 
+                      step="0.01" 
+                      placeholder="100.00"
+                      value={formData.retainAmount || ""}
+                      onChange={(e) => setFormData({...formData, retainAmount: parseFloat(e.target.value) || 0})}
+                      className="flex-1"
+                    />
+                    <Select 
+                      value={formData.retainUnit} 
+                      onValueChange={(v) => setFormData({...formData, retainUnit: v as MaterialUnit})}
+                    >
+                      <SelectTrigger className="w-[110px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 
@@ -335,26 +350,40 @@ export function AddMaterialForm({ onSave, onCancel }: AddMaterialFormProps) {
 
                 <div className="space-y-3">
                   {formData.aliquots.map((aliquot) => (
-                    <div key={aliquot.id} className="flex items-end gap-4 bg-muted/30 p-3 rounded-lg border">
-                      <div className="flex-1 space-y-1.5">
+                    <div key={aliquot.id} className="flex items-end gap-3 bg-muted/30 p-3 rounded-lg border">
+                      <div className="w-24 space-y-1.5">
                         <Label className="text-xs">Count</Label>
                         <Input 
                           type="number" 
                           placeholder="5" 
                           value={aliquot.count || ""}
-                          onChange={(e) => updateAliquot(aliquot.id, 'count', e.target.value)}
+                          onChange={(e) => updateAliquot(aliquot.id, 'count', parseFloat(e.target.value) || 0)}
                         />
                       </div>
                       <div className="flex items-center pb-2.5 text-muted-foreground">x</div>
                       <div className="flex-1 space-y-1.5">
-                        <Label className="text-xs">Size ({formData.unit})</Label>
+                        <Label className="text-xs">Size</Label>
                         <Input 
                           type="number" 
                           step="0.01" 
                           placeholder="10" 
                           value={aliquot.size || ""}
-                          onChange={(e) => updateAliquot(aliquot.id, 'size', e.target.value)}
+                          onChange={(e) => updateAliquot(aliquot.id, 'size', parseFloat(e.target.value) || 0)}
                         />
+                      </div>
+                      <div className="w-[110px] space-y-1.5">
+                        <Label className="text-xs">Unit</Label>
+                        <Select 
+                          value={aliquot.unit} 
+                          onValueChange={(v) => updateAliquot(aliquot.id, 'unit', v as MaterialUnit)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <Button 
                         type="button" 
