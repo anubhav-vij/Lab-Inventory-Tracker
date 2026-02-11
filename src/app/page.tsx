@@ -4,7 +4,7 @@ import * as React from "react";
 import { Material, Transaction, TransactionType } from "@/app/lib/types";
 import { InventorySummary } from "@/components/inventory/InventorySummary";
 import { MaterialTable } from "@/components/inventory/MaterialTable";
-import { AddMaterialDialog } from "@/components/inventory/AddMaterialDialog";
+import { AddMaterialForm } from "@/components/inventory/AddMaterialForm";
 import { TransactionDialog } from "@/components/inventory/TransactionDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,8 @@ import {
   History, 
   Database,
   FlaskConical,
-  Filter
+  Filter,
+  Plus
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -50,19 +51,20 @@ const MOCK_MATERIALS: Material[] = [
     name: "Buffer Solution pH 7.0",
     project: "Bio-React",
     lotNumber: "BUF-PH7-101",
-    storageLocations: ["Fridge #4, Shelf 2", "Secondary Lab Storage"],
+    storageLocations: ["Fridge #4, Shelf 2"],
     concentration: "NIST Traceable",
     submissionDate: "2024-03-15",
     storageCondition: "4°C Fridge",
     submittedVolume: 1000,
     unit: "mL",
     currentQuantity: 85,
-    labelInfo: "Low stock alert",
+    labelInfo: "Light sensitive",
     notes: "Calibration standard"
   }
 ];
 
 export default function LabInventoryDashboard() {
+  const [view, setView] = React.useState<'dashboard' | 'add'>('dashboard');
   const [materials, setMaterials] = React.useState<Material[]>([]);
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
   const [isLoaded, setIsLoaded] = React.useState(false);
@@ -115,6 +117,7 @@ export default function LabInventoryDashboard() {
       currentQuantity: data.submittedVolume
     };
     setMaterials([newMaterial, ...materials]);
+    setView('dashboard');
     toast({
       title: "Material Added",
       description: `${data.name} has been successfully registered.`
@@ -160,14 +163,16 @@ export default function LabInventoryDashboard() {
     });
   };
 
-  const handleMockImport = () => {
-    toast({
-      title: "Excel Import Mocked",
-      description: "Validated 14 entries. Updated balances for 4 materials."
-    });
-  };
-
   if (!isLoaded) return null;
+
+  if (view === 'add') {
+    return (
+      <AddMaterialForm 
+        onSave={handleAddMaterial} 
+        onCancel={() => setView('dashboard')} 
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-8 font-body">
@@ -184,13 +189,15 @@ export default function LabInventoryDashboard() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={handleMockImport}>
+            <Button variant="outline">
               <FileUp className="mr-2 h-4 w-4" /> Import Excel
             </Button>
             <Button variant="outline">
               <FileDown className="mr-2 h-4 w-4" /> Export Report
             </Button>
-            <AddMaterialDialog onSave={handleAddMaterial} />
+            <Button onClick={() => setView('add')} className="bg-primary hover:bg-primary/90">
+              <Plus className="mr-2 h-4 w-4" /> Add Material
+            </Button>
           </div>
         </div>
 
