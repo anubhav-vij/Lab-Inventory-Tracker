@@ -75,7 +75,7 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>New Inventory Submission</DialogTitle>
+            <DialogTitle>Add New Material</DialogTitle>
             <DialogDescription>
               Register a new material or batch in the laboratory inventory system.
             </DialogDescription>
@@ -123,7 +123,7 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="concentration">Concentration / Purity</Label>
+                <Label htmlFor="concentration">Concentration</Label>
                 <Input 
                   id="concentration" 
                   placeholder="e.g. 5M, 99%" 
@@ -206,17 +206,17 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notes">Handling Notes</Label>
+              <Label htmlFor="notes">Notes</Label>
               <Textarea 
                 id="notes" 
-                placeholder="Specify special handling instructions..." 
+                placeholder="Optional notes or handling instructions..." 
                 value={formData.notes}
                 onChange={(e) => setFormData({...formData, notes: e.target.value})}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit" className="w-full">Create Entry</Button>
+            <Button type="submit" className="w-full">Add Material</Button>
           </DialogFooter>
         </form>
       </DialogContent>
