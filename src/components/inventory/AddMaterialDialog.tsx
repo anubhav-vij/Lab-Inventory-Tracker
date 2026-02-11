@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -64,6 +63,11 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
       labelInfo: "",
       notes: ""
     });
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value === "" ? 0 : parseFloat(e.target.value);
+    setFormData({ ...formData, submittedVolume: isNaN(val) ? 0 : val });
   };
 
   return (
@@ -171,8 +175,8 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
                   id="volume" 
                   type="number" 
                   step="0.01" 
-                  value={formData.submittedVolume}
-                  onChange={(e) => setFormData({...formData, submittedVolume: parseFloat(e.target.value)})}
+                  value={formData.submittedVolume === 0 ? "" : formData.submittedVolume}
+                  onChange={handleVolumeChange}
                   required 
                 />
               </div>
