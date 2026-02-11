@@ -64,7 +64,7 @@ export function MaterialTable({ materials, onAddTransaction, onViewDetails }: Ma
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-1">
-                    {m.storageLocations.length > 0 ? (
+                    {m.storageLocations && m.storageLocations.length > 0 ? (
                       m.storageLocations.map((loc, i) => (
                         <div key={i} className="flex items-center text-xs text-muted-foreground">
                           <MapPin className="h-3 w-3 mr-1 shrink-0" />

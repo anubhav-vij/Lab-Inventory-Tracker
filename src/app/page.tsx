@@ -77,7 +77,13 @@ export default function LabInventoryDashboard() {
     const savedTransactions = localStorage.getItem("lab_transactions");
     
     if (savedMaterials) {
-      setMaterials(JSON.parse(savedMaterials));
+      const parsed = JSON.parse(savedMaterials);
+      // Data migration: ensure storageLocations is an array
+      const migrated = parsed.map((m: any) => ({
+        ...m,
+        storageLocations: Array.isArray(m.storageLocations) ? m.storageLocations : (m.storageLocation ? [m.storageLocation] : [])
+      }));
+      setMaterials(migrated);
     } else {
       setMaterials(MOCK_MATERIALS);
     }
