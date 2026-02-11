@@ -35,12 +35,12 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
     concentration: initialData?.concentration || "",
     submissionDate: initialData?.submissionDate || new Date().toISOString().split('T')[0],
     storageCondition: initialData?.storageCondition || "Ambient",
-    submittedVolume: initialData?.submittedVolume || 0,
+    submittedVolume: initialData?.submittedVolume ?? 0,
     unit: initialData?.unit || "mL",
-    retainAmount: initialData?.retainAmount || 0,
+    retainAmount: initialData?.retainAmount ?? 0,
     retainUnit: initialData?.retainUnit || "mL",
     aliquots: initialData?.aliquots || [],
-    currentQuantity: initialData?.currentQuantity || 0,
+    currentQuantity: initialData?.currentQuantity ?? 0,
     labelInfo: initialData?.labelInfo || "",
     notes: initialData?.notes || ""
   });
@@ -104,12 +104,21 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
   };
 
   const updateAliquot = (id: string, field: keyof Aliquot, value: any) => {
+    let sanitizedValue = value;
+    if (field === 'count' || field === 'size') {
+      sanitizedValue = Math.max(0, parseFloat(value) || 0);
+    }
     setFormData({
       ...formData,
       aliquots: formData.aliquots.map(a => 
-        a.id === id ? { ...a, [field]: value } : a
+        a.id === id ? { ...a, [field]: sanitizedValue } : a
       )
     });
+  };
+
+  const handleNumericChange = (field: string, value: string) => {
+    const parsed = parseFloat(value) || 0;
+    setFormData(prev => ({ ...prev, [field]: Math.max(0, parsed) }));
   };
 
   return (
@@ -277,9 +286,10 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
                       id="volume" 
                       type="number" 
                       step="0.01" 
+                      min="0"
                       placeholder="1982.00"
-                      value={formData.submittedVolume || ""}
-                      onChange={(e) => setFormData({...formData, submittedVolume: parseFloat(e.target.value) || 0})}
+                      value={formData.submittedVolume}
+                      onChange={(e) => handleNumericChange('submittedVolume', e.target.value)}
                       required 
                       className="flex-1"
                     />
@@ -303,9 +313,10 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
                       id="currentQty" 
                       type="number" 
                       step="0.01" 
+                      min="0"
                       placeholder="1950.00"
-                      value={formData.currentQuantity || ""}
-                      onChange={(e) => setFormData({...formData, currentQuantity: parseFloat(e.target.value) || 0})}
+                      value={formData.currentQuantity}
+                      onChange={(e) => handleNumericChange('currentQuantity', e.target.value)}
                       required
                       className="flex-1"
                     />
@@ -324,9 +335,10 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
                       id="retain" 
                       type="number" 
                       step="0.01" 
+                      min="0"
                       placeholder="100.00"
-                      value={formData.retainAmount || ""}
-                      onChange={(e) => setFormData({...formData, retainAmount: parseFloat(e.target.value) || 0})}
+                      value={formData.retainAmount}
+                      onChange={(e) => handleNumericChange('retainAmount', e.target.value)}
                       className="flex-1"
                     />
                     <Select 
@@ -368,9 +380,10 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
                         <Label className="text-xs">Count</Label>
                         <Input 
                           type="number" 
+                          min="0"
                           placeholder="5" 
-                          value={aliquot.count || ""}
-                          onChange={(e) => updateAliquot(aliquot.id, 'count', parseFloat(e.target.value) || 0)}
+                          value={aliquot.count}
+                          onChange={(e) => updateAliquot(aliquot.id, 'count', e.target.value)}
                         />
                       </div>
                       <div className="flex items-center pb-2.5 text-muted-foreground">x</div>
@@ -379,9 +392,10 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
                         <Input 
                           type="number" 
                           step="0.01" 
+                          min="0"
                           placeholder="10" 
-                          value={aliquot.size || ""}
-                          onChange={(e) => updateAliquot(aliquot.id, 'size', parseFloat(e.target.value) || 0)}
+                          value={aliquot.size}
+                          onChange={(e) => updateAliquot(aliquot.id, 'size', e.target.value)}
                         />
                       </div>
                       <div className="w-[110px] space-y-1.5">

@@ -42,9 +42,10 @@ export function TransactionDialog({ material, isOpen, onClose, onSave }: Transac
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const qty = Math.max(0, parseFloat(quantity) || 0);
     onSave({
       type,
-      quantity: parseFloat(quantity),
+      quantity: qty,
       notes,
     });
     setQuantity("");
@@ -82,6 +83,7 @@ export function TransactionDialog({ material, isOpen, onClose, onSave }: Transac
                 id="quantity"
                 type="number"
                 step="0.01"
+                min="0"
                 placeholder="0.00"
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
