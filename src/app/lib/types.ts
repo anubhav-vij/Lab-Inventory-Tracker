@@ -10,7 +10,7 @@ export interface Material {
   submissionDate: string;
   storageCondition: string;
   submittedVolume: number;
-  unit: 'mL' | 'L' | 'mg' | 'g' | 'kg' | 'units';
+  unit: 'mL' | 'L' | 'mg' | 'g' | 'kg' | 'units' | 'µL' | 'vials' | 'bottles';
   currentQuantity: number;
   labelInfo: string;
   notes: string;

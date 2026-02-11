@@ -22,7 +22,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { SmartInput } from "./SmartInput";
 import { Plus } from "lucide-react";
 
 interface AddMaterialDialogProps {
@@ -40,7 +39,7 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
     submissionDate: new Date().toISOString().split('T')[0],
     storageCondition: "Ambient",
     submittedVolume: 0,
-    unit: "mL" as const,
+    unit: "mL" as any,
     labelInfo: "",
     notes: ""
   });
@@ -89,10 +88,11 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Material Name</Label>
-                <SmartInput 
-                  fieldName="Material Name" 
+                <Input 
+                  id="name"
                   placeholder="e.g. Sodium Chloride" 
-                  onValueChange={(v) => setFormData({...formData, name: v})}
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
                   required
                 />
               </div>
@@ -141,10 +141,11 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="location">Storage Location</Label>
-                <SmartInput 
-                  fieldName="Storage Location" 
+                <Input 
+                  id="location"
                   placeholder="e.g. Freezer -80 Shelf A" 
-                  onValueChange={(v) => setFormData({...formData, storageLocation: v})}
+                  value={formData.storageLocation}
+                  onChange={(e) => setFormData({...formData, storageLocation: e.target.value})}
                   required
                 />
               </div>
@@ -175,7 +176,7 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
                   id="volume" 
                   type="number" 
                   step="0.01" 
-                  value={isNaN(formData.submittedVolume) || formData.submittedVolume === 0 ? "" : formData.submittedVolume.toString()}
+                  value={formData.submittedVolume === 0 ? "" : formData.submittedVolume.toString()}
                   onChange={handleVolumeChange}
                   required 
                 />
@@ -192,10 +193,13 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
                   <SelectContent>
                     <SelectItem value="mL">mL</SelectItem>
                     <SelectItem value="L">L</SelectItem>
+                    <SelectItem value="µL">µL</SelectItem>
                     <SelectItem value="mg">mg</SelectItem>
                     <SelectItem value="g">g</SelectItem>
                     <SelectItem value="kg">kg</SelectItem>
                     <SelectItem value="units">units</SelectItem>
+                    <SelectItem value="vials">vials</SelectItem>
+                    <SelectItem value="bottles">bottles</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -208,6 +212,16 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
                   onChange={(e) => setFormData({...formData, submissionDate: e.target.value})}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="labelInfo">Label Information</Label>
+              <Input 
+                id="labelInfo" 
+                placeholder="e.g. Hazardous, Light Sensitive" 
+                value={formData.labelInfo}
+                onChange={(e) => setFormData({...formData, labelInfo: e.target.value})}
+              />
             </div>
 
             <div className="space-y-2">
