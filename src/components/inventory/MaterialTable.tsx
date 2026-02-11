@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, ArrowRightLeft, Thermometer, MapPin, Edit2 } from "lucide-react";
+import { MoreHorizontal, ArrowRightLeft, Thermometer, MapPin, Edit2, Layers } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,10 +36,11 @@ export function MaterialTable({ materials, onAddTransaction, onEdit, onViewDetai
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[200px]">Material Name</TableHead>
+            <TableHead className="w-[180px]">Material Name</TableHead>
             <TableHead>Project</TableHead>
             <TableHead>Location(s)</TableHead>
             <TableHead>Lot #</TableHead>
+            <TableHead>Aliquots</TableHead>
             <TableHead>Condition</TableHead>
             <TableHead className="text-right">Available Quantity</TableHead>
             <TableHead className="w-[100px]"></TableHead>
@@ -48,7 +49,7 @@ export function MaterialTable({ materials, onAddTransaction, onEdit, onViewDetai
         <TableBody>
           {materials.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center h-32 text-muted-foreground">
+              <TableCell colSpan={8} className="text-center h-32 text-muted-foreground">
                 No materials found. Add your first material to get started.
               </TableCell>
             </TableRow>
@@ -70,7 +71,7 @@ export function MaterialTable({ materials, onAddTransaction, onEdit, onViewDetai
                       m.storageLocations.map((loc, i) => (
                         <div key={i} className="flex items-center text-xs text-muted-foreground">
                           <MapPin className="h-3 w-3 mr-1 shrink-0" />
-                          <span className="truncate max-w-[150px]">{loc}</span>
+                          <span className="truncate max-w-[120px]">{loc}</span>
                         </div>
                       ))
                     ) : (
@@ -80,6 +81,20 @@ export function MaterialTable({ materials, onAddTransaction, onEdit, onViewDetai
                 </TableCell>
                 <TableCell className="font-mono text-xs">{m.lotNumber}</TableCell>
                 <TableCell>
+                  <div className="flex flex-col gap-1">
+                    {m.aliquots && m.aliquots.length > 0 ? (
+                      m.aliquots.map((a) => (
+                        <div key={a.id} className="flex items-center text-xs text-muted-foreground">
+                          <Layers className="h-3 w-3 mr-1 shrink-0" />
+                          <span className="whitespace-nowrap">{a.count} x {a.size} {a.unit}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">None</span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
                   <div className="flex items-center text-sm">
                     <Thermometer className="h-3 w-3 mr-1 text-muted-foreground" />
                     {m.storageCondition}
@@ -88,7 +103,7 @@ export function MaterialTable({ materials, onAddTransaction, onEdit, onViewDetai
                 <TableCell className="text-right">
                   <span className={cn(
                     "font-bold",
-                    m.currentQuantity === 0 ? "text-red-600 animate-pulse" : "text-foreground"
+                    m.currentQuantity === 0 ? "text-destructive animate-pulse" : "text-foreground"
                   )}>
                     {m.currentQuantity} {m.unit}
                   </span>
