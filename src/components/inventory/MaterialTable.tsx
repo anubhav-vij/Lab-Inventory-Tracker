@@ -54,86 +54,100 @@ export function MaterialTable({ materials, onAddTransaction, onEdit, onViewDetai
               </TableCell>
             </TableRow>
           ) : (
-            materials.map((m) => (
-              <TableRow key={m.id} className="group hover:bg-muted/50">
-                <TableCell>
-                  <div className="font-semibold">{m.name}</div>
-                  <div className="text-xs text-muted-foreground">{m.concentration}</div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className="bg-secondary/10 border-secondary">
-                    {m.project}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-col gap-1">
-                    {m.storageLocations && m.storageLocations.length > 0 ? (
-                      m.storageLocations.map((loc, i) => (
-                        <div key={i} className="flex items-center text-xs text-muted-foreground">
-                          <MapPin className="h-3 w-3 mr-1 shrink-0" />
-                          <span className="truncate max-w-[120px]">{loc}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <span className="text-xs text-muted-foreground italic">No location set</span>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="font-mono text-xs">{m.lotNumber}</TableCell>
-                <TableCell>
-                  <div className="flex flex-col gap-1">
-                    {m.aliquots && m.aliquots.length > 0 ? (
-                      m.aliquots.map((a) => (
-                        <div key={a.id} className="flex items-center text-xs text-muted-foreground">
-                          <Layers className="h-3 w-3 mr-1 shrink-0" />
-                          <span className="whitespace-nowrap">{a.count} x {a.size} {a.unit}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <span className="text-xs text-muted-foreground italic">None</span>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center text-sm">
-                    <Thermometer className="h-3 w-3 mr-1 text-muted-foreground" />
-                    {m.storageCondition}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <span className={cn(
-                    "font-bold",
-                    m.currentQuantity === 0 ? "text-destructive animate-pulse" : "text-foreground"
-                  )}>
-                    {m.currentQuantity} {m.unit}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => onViewDetails(m)}>
-                        View Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onEdit(m)}>
-                        <Edit2 className="mr-2 h-4 w-4" />
-                        Edit Details
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => onAddTransaction(m)}>
-                        <ArrowRightLeft className="mr-2 h-4 w-4" />
-                        Record Transaction
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))
+            materials.map((m) => {
+              const isDepleted = m.currentQuantity === 0;
+              return (
+                <TableRow 
+                  key={m.id} 
+                  className={cn(
+                    "group transition-colors",
+                    isDepleted 
+                      ? "bg-destructive/10 hover:bg-destructive/15 border-destructive/20" 
+                      : "hover:bg-muted/50"
+                  )}
+                >
+                  <TableCell>
+                    <div className={cn("font-semibold", isDepleted && "text-destructive")}>{m.name}</div>
+                    <div className="text-xs text-muted-foreground">{m.concentration}</div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={cn(
+                      "bg-secondary/10 border-secondary",
+                      isDepleted && "border-destructive/30 text-destructive"
+                    )}>
+                      {m.project}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-1">
+                      {m.storageLocations && m.storageLocations.length > 0 ? (
+                        m.storageLocations.map((loc, i) => (
+                          <div key={i} className="flex items-center text-xs text-muted-foreground">
+                            <MapPin className="h-3 w-3 mr-1 shrink-0" />
+                            <span className="truncate max-w-[120px]">{loc}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">No location set</span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">{m.lotNumber}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-1">
+                      {m.aliquots && m.aliquots.length > 0 ? (
+                        m.aliquots.map((a) => (
+                          <div key={a.id} className="flex items-center text-xs text-muted-foreground">
+                            <Layers className="h-3 w-3 mr-1 shrink-0" />
+                            <span className="whitespace-nowrap">{a.count} x {a.size} {a.unit}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">None</span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center text-sm">
+                      <Thermometer className="h-3 w-3 mr-1 text-muted-foreground" />
+                      {m.storageCondition}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <span className={cn(
+                      "font-bold text-base",
+                      isDepleted ? "text-destructive animate-pulse" : "text-foreground"
+                    )}>
+                      {m.currentQuantity} {m.unit}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => onViewDetails(m)}>
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onEdit(m)}>
+                          <Edit2 className="mr-2 h-4 w-4" />
+                          Edit Details
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => onAddTransaction(m)}>
+                          <ArrowRightLeft className="mr-2 h-4 w-4" />
+                          Record Transaction
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              );
+            })
           )}
         </TableBody>
       </Table>
