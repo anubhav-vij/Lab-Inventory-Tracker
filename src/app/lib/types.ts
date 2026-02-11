@@ -35,8 +35,9 @@ export interface Transaction {
   type: TransactionType;
   quantity: number;
   unit: string;
-  timestamp: string;
+  timestamp: string; // User-selected transaction date
+  recordedAt: string; // System time
   recipient: string;
-  aliquotsDescription: string;
+  aliquots: Aliquot[];
   notes: string;
 }

@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { Material, Transaction, TransactionType } from "@/app/lib/types";
+import { Material, Transaction, TransactionType, Aliquot } from "@/app/lib/types";
 import { InventorySummary } from "@/components/inventory/InventorySummary";
 import { MaterialTable } from "@/components/inventory/MaterialTable";
 import { AddMaterialForm } from "@/components/inventory/AddMaterialForm";
-import { TransactionDialog } from "@/components/inventory/TransactionDialog";
+import { TransactionForm } from "@/components/inventory/TransactionForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,7 +18,8 @@ import {
   FlaskConical,
   Filter,
   Plus,
-  User
+  User,
+  Layers
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -71,14 +72,13 @@ const MOCK_MATERIALS: Material[] = [
 ];
 
 export default function LabInventoryDashboard() {
-  const [view, setView] = React.useState<'dashboard' | 'add' | 'edit'>('dashboard');
+  const [view, setView] = React.useState<'dashboard' | 'add' | 'edit' | 'transaction'>('dashboard');
   const [materials, setMaterials] = React.useState<Material[]>([]);
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [activeMaterial, setActiveMaterial] = React.useState<Material | null>(null);
   const [editingMaterial, setEditingMaterial] = React.useState<Material | null>(null);
-  const [isTransactionOpen, setIsTransactionOpen] = React.useState(false);
   const { toast } = useToast();
 
   // Load from localStorage on mount
@@ -145,7 +145,7 @@ export default function LabInventoryDashboard() {
 
   const handleOpenTransaction = (material: Material) => {
     setActiveMaterial(material);
-    setIsTransactionOpen(true);
+    setView('transaction');
   };
 
   const handleEditMaterial = (material: Material) => {
@@ -153,7 +153,15 @@ export default function LabInventoryDashboard() {
     setView('edit');
   };
 
-  const handleSaveTransaction = (data: { type: TransactionType; quantity: number; recipient: string; aliquotsDescription: string; notes: string }) => {
+  const handleSaveTransaction = (data: { 
+    type: TransactionType; 
+    quantity: number; 
+    unit: string;
+    timestamp: string;
+    recipient: string; 
+    aliquots: Aliquot[]; 
+    notes: string 
+  }) => {
     if (!activeMaterial) return;
 
     const newTransaction: Transaction = {
@@ -162,10 +170,11 @@ export default function LabInventoryDashboard() {
       materialName: activeMaterial.name,
       type: data.type,
       quantity: data.quantity,
-      unit: activeMaterial.unit,
-      timestamp: new Date().toLocaleString(),
+      unit: data.unit,
+      timestamp: data.timestamp,
+      recordedAt: new Date().toLocaleString(),
       recipient: data.recipient,
-      aliquotsDescription: data.aliquotsDescription,
+      aliquots: data.aliquots,
       notes: data.notes
     };
 
@@ -174,6 +183,7 @@ export default function LabInventoryDashboard() {
     setMaterials(prev => prev.map(m => {
       if (m.id === activeMaterial.id) {
         let newQty = m.currentQuantity;
+        // Basic calculation (assuming unit matches for simplicity in this MVP logic)
         if (data.type === 'consumption') newQty -= data.quantity;
         else if (data.type === 'addition') newQty += data.quantity;
         else if (data.type === 'adjustment') newQty = data.quantity;
@@ -186,6 +196,8 @@ export default function LabInventoryDashboard() {
       title: "Transaction Recorded",
       description: `Stock level updated for ${activeMaterial.name}.`
     });
+    setView('dashboard');
+    setActiveMaterial(null);
   };
 
   if (!isLoaded) return null;
@@ -199,6 +211,19 @@ export default function LabInventoryDashboard() {
           setView('dashboard');
           setEditingMaterial(null);
         }} 
+      />
+    );
+  }
+
+  if (view === 'transaction' && activeMaterial) {
+    return (
+      <TransactionForm 
+        material={activeMaterial}
+        onSave={handleSaveTransaction}
+        onCancel={() => {
+          setView('dashboard');
+          setActiveMaterial(null);
+        }}
       />
     );
   }
@@ -274,12 +299,12 @@ export default function LabInventoryDashboard() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Timestamp</TableHead>
+                    <TableHead>Date</TableHead>
                     <TableHead>Material</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Change</TableHead>
                     <TableHead>Recipient</TableHead>
-                    <TableHead>Aliquots</TableHead>
+                    <TableHead>Aliquots Given</TableHead>
                     <TableHead>Notes</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -293,8 +318,8 @@ export default function LabInventoryDashboard() {
                   ) : (
                     transactions.map((t) => (
                       <TableRow key={t.id}>
-                        <TableCell className="text-[10px] text-muted-foreground">{t.timestamp}</TableCell>
-                        <TableCell className="font-medium">{t.materialName}</TableCell>
+                        <TableCell className="text-sm font-medium">{t.timestamp}</TableCell>
+                        <TableCell className="font-semibold">{t.materialName}</TableCell>
                         <TableCell>
                           <Badge 
                             variant={
@@ -317,8 +342,17 @@ export default function LabInventoryDashboard() {
                             </div>
                           ) : '-'}
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground italic">
-                          {t.aliquotsDescription || '-'}
+                        <TableCell>
+                          <div className="flex flex-col gap-0.5">
+                            {t.aliquots && t.aliquots.length > 0 ? (
+                              t.aliquots.map((a) => (
+                                <div key={a.id} className="flex items-center text-[10px] text-muted-foreground">
+                                  <Layers className="h-2.5 w-2.5 mr-1" />
+                                  {a.count} x {a.size} {a.unit}
+                                </div>
+                              ))
+                            ) : '-'}
+                          </div>
                         </TableCell>
                         <TableCell className="text-xs max-w-[150px] truncate" title={t.notes}>
                           {t.notes || '-'}
@@ -332,13 +366,6 @@ export default function LabInventoryDashboard() {
           </TabsContent>
         </Tabs>
       </div>
-
-      <TransactionDialog 
-        material={activeMaterial}
-        isOpen={isTransactionOpen}
-        onClose={() => setIsTransactionOpen(false)}
-        onSave={handleSaveTransaction}
-      />
     </div>
   );
 }
