@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, ArrowRightLeft, Thermometer, MapPin } from "lucide-react";
+import { MoreHorizontal, ArrowRightLeft, Thermometer, MapPin, Edit2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,14 +21,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 interface MaterialTableProps {
   materials: Material[];
   onAddTransaction: (material: Material) => void;
+  onEdit: (material: Material) => void;
   onViewDetails: (material: Material) => void;
 }
 
-export function MaterialTable({ materials, onAddTransaction, onViewDetails }: MaterialTableProps) {
+export function MaterialTable({ materials, onAddTransaction, onEdit, onViewDetails }: MaterialTableProps) {
   return (
     <div className="rounded-md border bg-card">
       <Table>
@@ -39,7 +41,7 @@ export function MaterialTable({ materials, onAddTransaction, onViewDetails }: Ma
             <TableHead>Location(s)</TableHead>
             <TableHead>Lot #</TableHead>
             <TableHead>Condition</TableHead>
-            <TableHead className="text-right">Quantity</TableHead>
+            <TableHead className="text-right">Available Quantity</TableHead>
             <TableHead className="w-[100px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -84,7 +86,10 @@ export function MaterialTable({ materials, onAddTransaction, onViewDetails }: Ma
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
-                  <span className="font-bold text-foreground">
+                  <span className={cn(
+                    "font-bold",
+                    m.currentQuantity === 0 ? "text-red-600 animate-pulse" : "text-foreground"
+                  )}>
                     {m.currentQuantity} {m.unit}
                   </span>
                 </TableCell>
@@ -100,6 +105,11 @@ export function MaterialTable({ materials, onAddTransaction, onViewDetails }: Ma
                       <DropdownMenuItem onClick={() => onViewDetails(m)}>
                         View Details
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onEdit(m)}>
+                        <Edit2 className="mr-2 h-4 w-4" />
+                        Edit Details
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => onAddTransaction(m)}>
                         <ArrowRightLeft className="mr-2 h-4 w-4" />
                         Record Transaction

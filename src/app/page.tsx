@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -64,19 +63,20 @@ const MOCK_MATERIALS: Material[] = [
     retainAmount: 50,
     retainUnit: "mL",
     aliquots: [{ id: "a1", count: 10, size: 5, unit: "mL" }],
-    currentQuantity: 85,
+    currentQuantity: 0,
     labelInfo: "Light sensitive",
     notes: "Calibration standard"
   }
 ];
 
 export default function LabInventoryDashboard() {
-  const [view, setView] = React.useState<'dashboard' | 'add'>('dashboard');
+  const [view, setView] = React.useState<'dashboard' | 'add' | 'edit'>('dashboard');
   const [materials, setMaterials] = React.useState<Material[]>([]);
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [activeMaterial, setActiveMaterial] = React.useState<Material | null>(null);
+  const [editingMaterial, setEditingMaterial] = React.useState<Material | null>(null);
   const [isTransactionOpen, setIsTransactionOpen] = React.useState(false);
   const { toast } = useToast();
 
@@ -117,25 +117,42 @@ export default function LabInventoryDashboard() {
 
   const filteredMaterials = materials.filter(m => 
     m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    m.project.toLowerCase().includes(searchQuery.toLowerCase())
+    m.project.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    m.lotNumber.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleAddMaterial = (data: Omit<Material, 'id'>) => {
-    const newMaterial: Material = {
-      ...data,
-      id: Math.random().toString(36).substr(2, 9)
-    };
-    setMaterials([newMaterial, ...materials]);
+  const handleSaveMaterial = (data: Material | Omit<Material, 'id'>) => {
+    if ('id' in data) {
+      // Update existing
+      setMaterials(prev => prev.map(m => m.id === data.id ? data : m));
+      toast({
+        title: "Material Updated",
+        description: `${data.name} specifications have been saved.`
+      });
+    } else {
+      // Create new
+      const newMaterial: Material = {
+        ...data,
+        id: Math.random().toString(36).substr(2, 9)
+      };
+      setMaterials([newMaterial, ...materials]);
+      toast({
+        title: "Material Added",
+        description: `${data.name} has been successfully registered.`
+      });
+    }
     setView('dashboard');
-    toast({
-      title: "Material Added",
-      description: `${data.name} has been successfully registered.`
-    });
+    setEditingMaterial(null);
   };
 
   const handleOpenTransaction = (material: Material) => {
     setActiveMaterial(material);
     setIsTransactionOpen(true);
+  };
+
+  const handleEditMaterial = (material: Material) => {
+    setEditingMaterial(material);
+    setView('edit');
   };
 
   const handleSaveTransaction = (data: { type: TransactionType; quantity: number; notes: string }) => {
@@ -174,11 +191,15 @@ export default function LabInventoryDashboard() {
 
   if (!isLoaded) return null;
 
-  if (view === 'add') {
+  if (view === 'add' || view === 'edit') {
     return (
       <AddMaterialForm 
-        onSave={handleAddMaterial} 
-        onCancel={() => setView('dashboard')} 
+        initialData={editingMaterial || undefined}
+        onSave={handleSaveMaterial} 
+        onCancel={() => {
+          setView('dashboard');
+          setEditingMaterial(null);
+        }} 
       />
     );
   }
@@ -231,7 +252,7 @@ export default function LabInventoryDashboard() {
               <div className="relative w-full md:w-80">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search materials, projects..."
+                  placeholder="Search materials, projects, lot #..."
                   className="pl-10"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -247,6 +268,7 @@ export default function LabInventoryDashboard() {
             <MaterialTable 
               materials={filteredMaterials} 
               onAddTransaction={handleOpenTransaction}
+              onEdit={handleEditMaterial}
               onViewDetails={() => {}}
             />
           </TabsContent>

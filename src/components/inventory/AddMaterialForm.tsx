@@ -13,36 +13,39 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, X, FlaskConical, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, X, FlaskConical, Trash2, Save } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 interface AddMaterialFormProps {
-  onSave: (material: Omit<Material, 'id'>) => void;
+  onSave: (material: Material | Omit<Material, 'id'>) => void;
   onCancel: () => void;
+  initialData?: Material;
 }
 
 const UNITS: MaterialUnit[] = ['mL', 'L', 'µL', 'mg', 'g', 'kg', 'units', 'vials', 'bottles'];
 
-export function AddMaterialForm({ onSave, onCancel }: AddMaterialFormProps) {
+export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFormProps) {
   const [currentLocation, setCurrentLocation] = React.useState("");
   const [formData, setFormData] = React.useState({
-    name: "",
-    project: "",
-    lotNumber: "",
-    storageLocations: [] as string[],
-    concentration: "",
-    submissionDate: new Date().toISOString().split('T')[0],
-    storageCondition: "Ambient",
-    submittedVolume: 0,
-    unit: "mL" as MaterialUnit,
-    retainAmount: 0,
-    retainUnit: "mL" as MaterialUnit,
-    aliquots: [] as Aliquot[],
-    currentQuantity: 0,
-    labelInfo: "",
-    notes: ""
+    name: initialData?.name || "",
+    project: initialData?.project || "",
+    lotNumber: initialData?.lotNumber || "",
+    storageLocations: initialData?.storageLocations || [],
+    concentration: initialData?.concentration || "",
+    submissionDate: initialData?.submissionDate || new Date().toISOString().split('T')[0],
+    storageCondition: initialData?.storageCondition || "Ambient",
+    submittedVolume: initialData?.submittedVolume || 0,
+    unit: initialData?.unit || "mL",
+    retainAmount: initialData?.retainAmount || 0,
+    retainUnit: initialData?.retainUnit || "mL",
+    aliquots: initialData?.aliquots || [],
+    currentQuantity: initialData?.currentQuantity || 0,
+    labelInfo: initialData?.labelInfo || "",
+    notes: initialData?.notes || ""
   });
+
+  const isEditing = !!initialData;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,10 +54,16 @@ export function AddMaterialForm({ onSave, onCancel }: AddMaterialFormProps) {
       finalLocations.push(currentLocation.trim());
     }
     
-    onSave({
+    const submissionData = {
       ...formData,
       storageLocations: finalLocations
-    });
+    };
+
+    if (isEditing) {
+      onSave({ ...submissionData, id: initialData.id } as Material);
+    } else {
+      onSave(submissionData as Omit<Material, 'id'>);
+    }
   };
 
   const addLocation = () => {
@@ -113,9 +122,13 @@ export function AddMaterialForm({ onSave, onCancel }: AddMaterialFormProps) {
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-primary flex items-center gap-2">
               <FlaskConical className="h-8 w-8" />
-              Add New Material
+              {isEditing ? `Edit ${formData.name}` : "Add New Material"}
             </h1>
-            <p className="text-muted-foreground">Add a new material in the laboratory inventory system.</p>
+            <p className="text-muted-foreground">
+              {isEditing 
+                ? "Update material specifications and storage details." 
+                : "Add a new material in the laboratory inventory system."}
+            </p>
           </div>
         </div>
 
@@ -426,7 +439,7 @@ export function AddMaterialForm({ onSave, onCancel }: AddMaterialFormProps) {
               Cancel
             </Button>
             <Button type="submit" size="lg" className="min-w-[200px]">
-              Add Material
+              {isEditing ? <><Save className="mr-2 h-4 w-4" /> Save Changes</> : "Add Material"}
             </Button>
           </div>
         </form>
