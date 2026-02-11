@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,12 +21,9 @@ export function InventorySummary({ materials, transactions }: InventorySummaryPr
     return diffDays <= 7;
   }).length;
 
-  // Calculate transactions recorded today
-  const dailyTransactions = transactions.filter(t => {
-    const tDate = new Date(t.timestamp);
-    const now = new Date();
-    return tDate.toDateString() === now.toDateString();
-  }).length;
+  // Calculate transactions recorded today (comparing YYYY-MM-DD strings for reliability)
+  const todayStr = new Date().toISOString().split('T')[0];
+  const dailyTransactions = transactions.filter(t => t.timestamp === todayStr).length;
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -58,7 +54,7 @@ export function InventorySummary({ materials, transactions }: InventorySummaryPr
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{dailyTransactions}</div>
-          <p className="text-xs text-muted-foreground">Log entries today</p>
+          <p className="text-xs text-muted-foreground">Log entries for {todayStr}</p>
         </CardContent>
       </Card>
     </div>

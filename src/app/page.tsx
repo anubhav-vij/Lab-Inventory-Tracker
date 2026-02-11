@@ -178,12 +178,11 @@ export default function LabInventoryDashboard() {
       notes: data.notes
     };
 
-    setTransactions([newTransaction, ...transactions]);
+    setTransactions(prev => [newTransaction, ...prev]);
 
     setMaterials(prev => prev.map(m => {
       if (m.id === activeMaterial.id) {
         let newQty = m.currentQuantity;
-        // Basic calculation (assuming unit matches for simplicity in this MVP logic)
         if (data.type === 'consumption') newQty -= data.quantity;
         else if (data.type === 'addition') newQty += data.quantity;
         else if (data.type === 'adjustment') newQty = data.quantity;
