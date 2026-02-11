@@ -86,7 +86,7 @@ export function AddMaterialForm({ onSave, onCancel }: AddMaterialFormProps) {
               <FlaskConical className="h-8 w-8" />
               Add New Material
             </h1>
-            <p className="text-muted-foreground">Register a new material or batch in the laboratory inventory system.</p>
+            <p className="text-muted-foreground">Add a new material in the laboratory inventory system.</p>
           </div>
         </div>
 
