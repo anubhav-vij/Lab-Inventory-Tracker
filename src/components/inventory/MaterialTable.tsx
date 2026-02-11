@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, ArrowRightLeft, Package, Thermometer, MapPin } from "lucide-react";
+import { MoreHorizontal, ArrowRightLeft, Thermometer, MapPin } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 interface MaterialTableProps {
   materials: Material[];
@@ -76,10 +77,7 @@ export function MaterialTable({ materials, onAddTransaction, onViewDetails }: Ma
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
-                  <span className={cn(
-                    "font-bold",
-                    m.currentQuantity <= (m.submittedVolume * 0.1) ? "text-destructive" : "text-foreground"
-                  )}>
+                  <span className="font-bold text-foreground">
                     {m.currentQuantity} {m.unit}
                   </span>
                 </TableCell>
@@ -114,5 +112,3 @@ export function MaterialTable({ materials, onAddTransaction, onViewDetails }: Ma
     </div>
   );
 }
-
-import { cn } from "@/lib/utils";
