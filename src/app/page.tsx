@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -43,6 +44,7 @@ const MOCK_MATERIALS: Material[] = [
     submittedVolume: 500,
     unit: "g",
     retainAmount: 0,
+    retainUnit: "g",
     aliquots: [],
     currentQuantity: 420,
     labelInfo: "Handle with care",
@@ -60,7 +62,8 @@ const MOCK_MATERIALS: Material[] = [
     submittedVolume: 1000,
     unit: "mL",
     retainAmount: 50,
-    aliquots: [{ id: "a1", count: 10, size: 5 }],
+    retainUnit: "mL",
+    aliquots: [{ id: "a1", count: 10, size: 5, unit: "mL" }],
     currentQuantity: 85,
     labelInfo: "Light sensitive",
     notes: "Calibration standard"
@@ -89,6 +92,7 @@ export default function LabInventoryDashboard() {
         ...m,
         storageLocations: Array.isArray(m.storageLocations) ? m.storageLocations : (m.storageLocation ? [m.storageLocation] : []),
         retainAmount: m.retainAmount ?? 0,
+        retainUnit: m.retainUnit ?? m.unit ?? "mL",
         aliquots: Array.isArray(m.aliquots) ? m.aliquots : []
       }));
       setMaterials(migrated);
@@ -207,7 +211,7 @@ export default function LabInventoryDashboard() {
         </div>
 
         {/* Summary Stats */}
-        <InventorySummary materials={materials} />
+        <InventorySummary materials={materials} transactions={transactions} />
 
         {/* Main Content */}
         <Tabs defaultValue="inventory" className="w-full">

@@ -1,17 +1,32 @@
+
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, ArrowUpRight, Activity } from "lucide-react";
-import { Material } from "@/app/lib/types";
+import { Material, Transaction } from "@/app/lib/types";
 
-export function InventorySummary({ materials }: { materials: Material[] }) {
+interface InventorySummaryProps {
+  materials: Material[];
+  transactions: Transaction[];
+}
+
+export function InventorySummary({ materials, transactions }: InventorySummaryProps) {
   const totalItems = materials.length;
+  
+  // Calculate materials added in the last 7 days
   const recentAdditions = materials.filter(m => {
     const subDate = new Date(m.submissionDate);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - subDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays < 7;
+    return diffDays <= 7;
+  }).length;
+
+  // Calculate transactions recorded today
+  const dailyTransactions = transactions.filter(t => {
+    const tDate = new Date(t.timestamp);
+    const now = new Date();
+    return tDate.toDateString() === now.toDateString();
   }).length;
 
   return (
@@ -42,7 +57,7 @@ export function InventorySummary({ materials }: { materials: Material[] }) {
           <Activity className="h-4 w-4 text-primary" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">12</div>
+          <div className="text-2xl font-bold">{dailyTransactions}</div>
           <p className="text-xs text-muted-foreground">Log entries today</p>
         </CardContent>
       </Card>
