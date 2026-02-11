@@ -180,6 +180,7 @@ export default function LabInventoryDashboard() {
       id: Math.random().toString(36).substr(2, 9),
       materialId: activeMaterial.id,
       materialName: activeMaterial.name,
+      lotNumber: activeMaterial.lotNumber,
       type: data.type,
       quantity: data.quantity,
       unit: data.unit,
@@ -221,8 +222,6 @@ export default function LabInventoryDashboard() {
         } else if (transaction.type === 'addition') {
           restoredQty -= transaction.quantity;
         }
-        // Manual adjustments aren't perfectly reversible without history tracking,
-        // so we just remove the log entry for those.
         return { ...m, currentQuantity: Math.max(0, restoredQty) };
       }
       return m;
@@ -338,6 +337,7 @@ export default function LabInventoryDashboard() {
                   <TableRow>
                     <TableHead>Date</TableHead>
                     <TableHead>Material</TableHead>
+                    <TableHead>Lot #</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Change</TableHead>
                     <TableHead>Recipient</TableHead>
@@ -349,7 +349,7 @@ export default function LabInventoryDashboard() {
                 <TableBody>
                   {transactions.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center h-32 text-muted-foreground">
+                      <TableCell colSpan={9} className="text-center h-32 text-muted-foreground">
                         No transactions recorded yet.
                       </TableCell>
                     </TableRow>
@@ -358,6 +358,7 @@ export default function LabInventoryDashboard() {
                       <TableRow key={t.id}>
                         <TableCell className="text-sm font-medium">{t.timestamp}</TableCell>
                         <TableCell className="font-semibold">{t.materialName}</TableCell>
+                        <TableCell className="font-mono text-xs">{t.lotNumber}</TableCell>
                         <TableCell>
                           <Badge 
                             variant={

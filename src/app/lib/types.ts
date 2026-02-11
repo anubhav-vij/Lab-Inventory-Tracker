@@ -32,6 +32,7 @@ export interface Transaction {
   id: string;
   materialId: string;
   materialName: string;
+  lotNumber: string;
   type: TransactionType;
   quantity: number;
   unit: string;

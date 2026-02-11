@@ -99,7 +99,7 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
               Record Transaction: {material.name}
             </h1>
             <p className="text-muted-foreground">
-              Log material consumption, additions, or inventory adjustments.
+              Lot #: <span className="font-mono font-bold text-foreground">{material.lotNumber}</span>
             </p>
           </div>
         </div>
@@ -108,7 +108,7 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
           <Card>
             <CardHeader>
               <CardTitle>Transaction Details</CardTitle>
-              <CardDescription>Define the type and scale of this inventory change.</CardDescription>
+              <CardDescription>Define the type and scale of this inventory change for Lot {material.lotNumber}.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
