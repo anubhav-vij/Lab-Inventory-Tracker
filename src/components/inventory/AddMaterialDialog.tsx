@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -77,7 +78,7 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
           <DialogHeader>
             <DialogTitle>Add New Material</DialogTitle>
             <DialogDescription>
-              Register a new material or batch in the laboratory inventory system.
+              Add a new material in the laboratory inventory system.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 py-4">
