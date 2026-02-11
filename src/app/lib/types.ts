@@ -5,7 +5,7 @@ export interface Material {
   name: string;
   project: string;
   lotNumber: string;
-  storageLocation: string;
+  storageLocations: string[];
   concentration: string;
   submissionDate: string;
   storageCondition: string;

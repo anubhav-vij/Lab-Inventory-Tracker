@@ -22,7 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface AddMaterialDialogProps {
   onSave: (material: Omit<Material, 'id' | 'currentQuantity'>) => void;
@@ -30,11 +31,12 @@ interface AddMaterialDialogProps {
 
 export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
   const [open, setOpen] = React.useState(false);
+  const [currentLocation, setCurrentLocation] = React.useState("");
   const [formData, setFormData] = React.useState({
     name: "",
     project: "",
     lotNumber: "",
-    storageLocation: "",
+    storageLocations: [] as string[],
     concentration: "",
     submissionDate: new Date().toISOString().split('T')[0],
     storageCondition: "Ambient",
@@ -46,6 +48,9 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.storageLocations.length === 0 && currentLocation.trim()) {
+      formData.storageLocations = [currentLocation.trim()];
+    }
     onSave(formData);
     setOpen(false);
     // Reset form
@@ -53,7 +58,7 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
       name: "",
       project: "",
       lotNumber: "",
-      storageLocation: "",
+      storageLocations: [],
       concentration: "",
       submissionDate: new Date().toISOString().split('T')[0],
       storageCondition: "Ambient",
@@ -62,11 +67,29 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
       labelInfo: "",
       notes: ""
     });
+    setCurrentLocation("");
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value === "" ? 0 : parseFloat(e.target.value);
     setFormData({ ...formData, submittedVolume: isNaN(val) ? 0 : val });
+  };
+
+  const addLocation = () => {
+    if (currentLocation.trim()) {
+      setFormData({
+        ...formData,
+        storageLocations: [...formData.storageLocations, currentLocation.trim()]
+      });
+      setCurrentLocation("");
+    }
+  };
+
+  const removeLocation = (index: number) => {
+    setFormData({
+      ...formData,
+      storageLocations: formData.storageLocations.filter((_, i) => i !== index)
+    });
   };
 
   return (
@@ -138,17 +161,33 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="location">Storage Location</Label>
+            <div className="space-y-2">
+              <Label>Storage Locations</Label>
+              <div className="flex gap-2">
                 <Input 
-                  id="location"
                   placeholder="e.g. Freezer -80 Shelf A" 
-                  value={formData.storageLocation}
-                  onChange={(e) => setFormData({...formData, storageLocation: e.target.value})}
-                  required
+                  value={currentLocation}
+                  onChange={(e) => setCurrentLocation(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addLocation();
+                    }
+                  }}
                 />
+                <Button type="button" variant="outline" onClick={addLocation}>Add</Button>
               </div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {formData.storageLocations.map((loc, index) => (
+                  <Badge key={index} variant="secondary" className="px-2 py-1 flex items-center gap-1">
+                    {loc}
+                    <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => removeLocation(index)} />
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="condition">Storage Condition</Label>
                 <Select 
@@ -167,9 +206,18 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="date">Submission Date</Label>
+                <Input 
+                  id="date" 
+                  type="date" 
+                  value={formData.submissionDate}
+                  onChange={(e) => setFormData({...formData, submissionDate: e.target.value})}
+                />
+              </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="volume">Initial Amount</Label>
                 <Input 
@@ -202,15 +250,6 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
                     <SelectItem value="bottles">bottles</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="date">Submission Date</Label>
-                <Input 
-                  id="date" 
-                  type="date" 
-                  value={formData.submissionDate}
-                  onChange={(e) => setFormData({...formData, submissionDate: e.target.value})}
-                />
               </div>
             </div>
 

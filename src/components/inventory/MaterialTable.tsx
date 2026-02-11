@@ -21,7 +21,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
 
 interface MaterialTableProps {
   materials: Material[];
@@ -37,7 +36,7 @@ export function MaterialTable({ materials, onAddTransaction, onViewDetails }: Ma
           <TableRow>
             <TableHead className="w-[200px]">Material Name</TableHead>
             <TableHead>Project</TableHead>
-            <TableHead>Location</TableHead>
+            <TableHead>Location(s)</TableHead>
             <TableHead>Lot #</TableHead>
             <TableHead>Condition</TableHead>
             <TableHead className="text-right">Quantity</TableHead>
@@ -64,9 +63,17 @@ export function MaterialTable({ materials, onAddTransaction, onViewDetails }: Ma
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center text-sm">
-                    <MapPin className="h-3 w-3 mr-1 text-muted-foreground" />
-                    {m.storageLocation}
+                  <div className="flex flex-col gap-1">
+                    {m.storageLocations.length > 0 ? (
+                      m.storageLocations.map((loc, i) => (
+                        <div key={i} className="flex items-center text-xs text-muted-foreground">
+                          <MapPin className="h-3 w-3 mr-1 shrink-0" />
+                          <span className="truncate max-w-[150px]">{loc}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">No location set</span>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell className="font-mono text-xs">{m.lotNumber}</TableCell>
