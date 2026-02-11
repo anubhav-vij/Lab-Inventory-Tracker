@@ -175,7 +175,7 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
                   id="volume" 
                   type="number" 
                   step="0.01" 
-                  value={formData.submittedVolume === 0 ? "" : formData.submittedVolume}
+                  value={isNaN(formData.submittedVolume) || formData.submittedVolume === 0 ? "" : formData.submittedVolume.toString()}
                   onChange={handleVolumeChange}
                   required 
                 />

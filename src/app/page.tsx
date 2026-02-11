@@ -27,6 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 const MOCK_MATERIALS: Material[] = [
   {
@@ -62,12 +63,39 @@ const MOCK_MATERIALS: Material[] = [
 ];
 
 export default function LabInventoryDashboard() {
-  const [materials, setMaterials] = React.useState<Material[]>(MOCK_MATERIALS);
+  const [materials, setMaterials] = React.useState<Material[]>([]);
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
+  const [isLoaded, setIsLoaded] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [activeMaterial, setActiveMaterial] = React.useState<Material | null>(null);
   const [isTransactionOpen, setIsTransactionOpen] = React.useState(false);
   const { toast } = useToast();
+
+  // Load from localStorage on mount
+  React.useEffect(() => {
+    const savedMaterials = localStorage.getItem("lab_materials");
+    const savedTransactions = localStorage.getItem("lab_transactions");
+    
+    if (savedMaterials) {
+      setMaterials(JSON.parse(savedMaterials));
+    } else {
+      setMaterials(MOCK_MATERIALS);
+    }
+    
+    if (savedTransactions) {
+      setTransactions(JSON.parse(savedTransactions));
+    }
+    
+    setIsLoaded(true);
+  }, []);
+
+  // Save to localStorage on changes
+  React.useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem("lab_materials", JSON.stringify(materials));
+      localStorage.setItem("lab_transactions", JSON.stringify(transactions));
+    }
+  }, [materials, transactions, isLoaded]);
 
   const filteredMaterials = materials.filter(m => 
     m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -132,6 +160,8 @@ export default function LabInventoryDashboard() {
       description: "Validated 14 entries. Updated balances for 4 materials."
     });
   };
+
+  if (!isLoaded) return null;
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-8 font-body">
