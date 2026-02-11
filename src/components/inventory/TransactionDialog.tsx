@@ -29,6 +29,8 @@ interface TransactionDialogProps {
   onSave: (transaction: {
     type: TransactionType;
     quantity: number;
+    recipient: string;
+    aliquotsDescription: string;
     notes: string;
   }) => void;
 }
@@ -36,6 +38,8 @@ interface TransactionDialogProps {
 export function TransactionDialog({ material, isOpen, onClose, onSave }: TransactionDialogProps) {
   const [type, setType] = React.useState<TransactionType>("consumption");
   const [quantity, setQuantity] = React.useState("");
+  const [recipient, setRecipient] = React.useState("");
+  const [aliquotsDescription, setAliquotsDescription] = React.useState("");
   const [notes, setNotes] = React.useState("");
 
   if (!material) return null;
@@ -46,24 +50,29 @@ export function TransactionDialog({ material, isOpen, onClose, onSave }: Transac
     onSave({
       type,
       quantity: qty,
+      recipient,
+      aliquotsDescription,
       notes,
     });
+    // Reset form
     setQuantity("");
+    setRecipient("");
+    setAliquotsDescription("");
     setNotes("");
     onClose();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[450px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Record Transaction</DialogTitle>
             <DialogDescription>
-              Record how much of <strong>{material.name}</strong> is being used or added.
+              Record how much of <strong>{material.name}</strong> is being used or adjusted.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-5 py-4">
             <div className="grid gap-2">
               <Label htmlFor="type">Transaction Type</Label>
               <Select value={type} onValueChange={(v) => setType(v as TransactionType)}>
@@ -77,24 +86,48 @@ export function TransactionDialog({ material, isOpen, onClose, onSave }: Transac
                 </SelectContent>
               </Select>
             </div>
+            
             <div className="grid gap-2">
-              <Label htmlFor="quantity">Quantity ({material.unit})</Label>
+              <Label htmlFor="recipient">Recipient / Authorized User</Label>
               <Input
-                id="quantity"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                required
+                id="recipient"
+                placeholder="Name of person receiving material"
+                value={recipient}
+                onChange={(e) => setRecipient(e.target.value)}
+                required={type === 'consumption'}
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="quantity">Volume ({material.unit})</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="aliquots">Aliquots Given</Label>
+                <Input
+                  id="aliquots"
+                  placeholder="e.g. 2 x 5mL"
+                  value={aliquotsDescription}
+                  onChange={(e) => setAliquotsDescription(e.target.value)}
+                />
+              </div>
+            </div>
+
             <div className="grid gap-2">
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor="notes">Notes (Optional)</Label>
               <Textarea
                 id="notes"
-                placeholder="Reason for transaction..."
+                placeholder="Reason for transaction, project details, etc."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />

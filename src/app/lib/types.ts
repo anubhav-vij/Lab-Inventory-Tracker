@@ -36,5 +36,7 @@ export interface Transaction {
   quantity: number;
   unit: string;
   timestamp: string;
+  recipient: string;
+  aliquotsDescription: string;
   notes: string;
 }

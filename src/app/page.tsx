@@ -17,7 +17,8 @@ import {
   Database,
   FlaskConical,
   Filter,
-  Plus
+  Plus,
+  User
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -87,7 +88,6 @@ export default function LabInventoryDashboard() {
     
     if (savedMaterials) {
       const parsed = JSON.parse(savedMaterials);
-      // Data migration: ensure arrays and defaults for new fields
       const migrated = parsed.map((m: any) => ({
         ...m,
         storageLocations: Array.isArray(m.storageLocations) ? m.storageLocations : (m.storageLocation ? [m.storageLocation] : []),
@@ -123,14 +123,12 @@ export default function LabInventoryDashboard() {
 
   const handleSaveMaterial = (data: Material | Omit<Material, 'id'>) => {
     if ('id' in data) {
-      // Update existing
       setMaterials(prev => prev.map(m => m.id === data.id ? data : m));
       toast({
         title: "Material Updated",
         description: `${data.name} specifications have been saved.`
       });
     } else {
-      // Create new
       const newMaterial: Material = {
         ...data,
         id: Math.random().toString(36).substr(2, 9)
@@ -155,7 +153,7 @@ export default function LabInventoryDashboard() {
     setView('edit');
   };
 
-  const handleSaveTransaction = (data: { type: TransactionType; quantity: number; notes: string }) => {
+  const handleSaveTransaction = (data: { type: TransactionType; quantity: number; recipient: string; aliquotsDescription: string; notes: string }) => {
     if (!activeMaterial) return;
 
     const newTransaction: Transaction = {
@@ -166,12 +164,13 @@ export default function LabInventoryDashboard() {
       quantity: data.quantity,
       unit: activeMaterial.unit,
       timestamp: new Date().toLocaleString(),
+      recipient: data.recipient,
+      aliquotsDescription: data.aliquotsDescription,
       notes: data.notes
     };
 
     setTransactions([newTransaction, ...transactions]);
 
-    // Update quantities
     setMaterials(prev => prev.map(m => {
       if (m.id === activeMaterial.id) {
         let newQty = m.currentQuantity;
@@ -207,7 +206,6 @@ export default function LabInventoryDashboard() {
   return (
     <div className="min-h-screen bg-background p-6 md:p-8 font-body">
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-primary flex items-center gap-2">
@@ -231,10 +229,8 @@ export default function LabInventoryDashboard() {
           </div>
         </div>
 
-        {/* Summary Stats */}
         <InventorySummary materials={materials} transactions={transactions} />
 
-        {/* Main Content */}
         <Tabs defaultValue="inventory" className="w-full">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
             <TabsList className="bg-muted/50">
@@ -282,20 +278,22 @@ export default function LabInventoryDashboard() {
                     <TableHead>Material</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Change</TableHead>
+                    <TableHead>Recipient</TableHead>
+                    <TableHead>Aliquots</TableHead>
                     <TableHead>Notes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {transactions.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center h-32 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center h-32 text-muted-foreground">
                         No transactions recorded yet.
                       </TableCell>
                     </TableRow>
                   ) : (
                     transactions.map((t) => (
                       <TableRow key={t.id}>
-                        <TableCell className="text-xs text-muted-foreground">{t.timestamp}</TableCell>
+                        <TableCell className="text-[10px] text-muted-foreground">{t.timestamp}</TableCell>
                         <TableCell className="font-medium">{t.materialName}</TableCell>
                         <TableCell>
                           <Badge 
@@ -303,14 +301,28 @@ export default function LabInventoryDashboard() {
                               t.type === 'consumption' ? 'destructive' : 
                               t.type === 'addition' ? 'secondary' : 'outline'
                             }
+                            className="text-[10px] uppercase px-1.5"
                           >
                             {t.type}
                           </Badge>
                         </TableCell>
-                        <TableCell>
-                          {t.type === 'consumption' ? '-' : '+'}{t.quantity} {t.unit}
+                        <TableCell className="font-mono text-xs">
+                          {t.type === 'consumption' ? '-' : t.type === 'addition' ? '+' : ''}{t.quantity} {t.unit}
                         </TableCell>
-                        <TableCell className="text-xs max-w-[200px] truncate">{t.notes}</TableCell>
+                        <TableCell className="text-sm">
+                          {t.recipient ? (
+                            <div className="flex items-center gap-1.5">
+                              <User className="h-3 w-3 text-muted-foreground" />
+                              {t.recipient}
+                            </div>
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground italic">
+                          {t.aliquotsDescription || '-'}
+                        </TableCell>
+                        <TableCell className="text-xs max-w-[150px] truncate" title={t.notes}>
+                          {t.notes || '-'}
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
