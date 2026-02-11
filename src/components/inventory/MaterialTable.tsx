@@ -104,10 +104,6 @@ export function MaterialTable({ materials, onAddTransaction, onViewDetails }: Ma
                         <ArrowRightLeft className="mr-2 h-4 w-4" />
                         Record Transaction
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive">
-                        Decommission
-                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
