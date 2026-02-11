@@ -19,7 +19,8 @@ import {
   Filter,
   Plus,
   User,
-  Layers
+  Layers,
+  Trash2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -31,6 +32,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const MOCK_MATERIALS: Material[] = [
   {
@@ -199,6 +211,32 @@ export default function LabInventoryDashboard() {
     setActiveMaterial(null);
   };
 
+  const handleDeleteTransaction = (transaction: Transaction) => {
+    // 1. Revert the quantity on the material
+    setMaterials(prev => prev.map(m => {
+      if (m.id === transaction.materialId) {
+        let restoredQty = m.currentQuantity;
+        if (transaction.type === 'consumption') {
+          restoredQty += transaction.quantity;
+        } else if (transaction.type === 'addition') {
+          restoredQty -= transaction.quantity;
+        }
+        // Manual adjustments aren't perfectly reversible without history tracking,
+        // so we just remove the log entry for those.
+        return { ...m, currentQuantity: Math.max(0, restoredQty) };
+      }
+      return m;
+    }));
+
+    // 2. Remove from transaction list
+    setTransactions(prev => prev.filter(t => t.id !== transaction.id));
+
+    toast({
+      title: "Transaction Deleted",
+      description: `Inventory for ${transaction.materialName} has been restored.`
+    });
+  };
+
   if (!isLoaded) return null;
 
   if (view === 'add' || view === 'edit') {
@@ -305,12 +343,13 @@ export default function LabInventoryDashboard() {
                     <TableHead>Recipient</TableHead>
                     <TableHead>Aliquots Given</TableHead>
                     <TableHead>Notes</TableHead>
+                    <TableHead className="w-[100px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {transactions.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center h-32 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center h-32 text-muted-foreground">
                         No transactions recorded yet.
                       </TableCell>
                     </TableRow>
@@ -355,6 +394,32 @@ export default function LabInventoryDashboard() {
                         </TableCell>
                         <TableCell className="text-xs max-w-[150px] truncate" title={t.notes}>
                           {t.notes || '-'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Transaction?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will remove the transaction record and attempt to restore the material's available quantity. This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => handleDeleteTransaction(t)}
+                                  className="bg-destructive hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </TableCell>
                       </TableRow>
                     ))
