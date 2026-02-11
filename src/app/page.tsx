@@ -42,6 +42,8 @@ const MOCK_MATERIALS: Material[] = [
     storageCondition: "Ambient",
     submittedVolume: 500,
     unit: "g",
+    retainAmount: 0,
+    aliquots: [],
     currentQuantity: 420,
     labelInfo: "Handle with care",
     notes: "High purity batch"
@@ -57,6 +59,8 @@ const MOCK_MATERIALS: Material[] = [
     storageCondition: "4°C Fridge",
     submittedVolume: 1000,
     unit: "mL",
+    retainAmount: 50,
+    aliquots: [{ id: "a1", count: 10, size: 5 }],
     currentQuantity: 85,
     labelInfo: "Light sensitive",
     notes: "Calibration standard"
@@ -80,10 +84,12 @@ export default function LabInventoryDashboard() {
     
     if (savedMaterials) {
       const parsed = JSON.parse(savedMaterials);
-      // Data migration: ensure storageLocations is an array
+      // Data migration: ensure arrays and defaults for new fields
       const migrated = parsed.map((m: any) => ({
         ...m,
-        storageLocations: Array.isArray(m.storageLocations) ? m.storageLocations : (m.storageLocation ? [m.storageLocation] : [])
+        storageLocations: Array.isArray(m.storageLocations) ? m.storageLocations : (m.storageLocation ? [m.storageLocation] : []),
+        retainAmount: m.retainAmount ?? 0,
+        aliquots: Array.isArray(m.aliquots) ? m.aliquots : []
       }));
       setMaterials(migrated);
     } else {
@@ -110,11 +116,10 @@ export default function LabInventoryDashboard() {
     m.project.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleAddMaterial = (data: Omit<Material, 'id' | 'currentQuantity'>) => {
+  const handleAddMaterial = (data: Omit<Material, 'id'>) => {
     const newMaterial: Material = {
       ...data,
-      id: Math.random().toString(36).substr(2, 9),
-      currentQuantity: data.submittedVolume
+      id: Math.random().toString(36).substr(2, 9)
     };
     setMaterials([newMaterial, ...materials]);
     setView('dashboard');

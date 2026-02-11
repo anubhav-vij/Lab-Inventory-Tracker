@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Material } from "@/app/lib/types";
+import { Material, Aliquot } from "@/app/lib/types";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -13,12 +13,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, X, FlaskConical } from "lucide-react";
+import { ArrowLeft, Plus, X, FlaskConical, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 interface AddMaterialFormProps {
-  onSave: (material: Omit<Material, 'id' | 'currentQuantity'>) => void;
+  onSave: (material: Omit<Material, 'id'>) => void;
   onCancel: () => void;
 }
 
@@ -34,13 +34,15 @@ export function AddMaterialForm({ onSave, onCancel }: AddMaterialFormProps) {
     storageCondition: "Ambient",
     submittedVolume: 0,
     unit: "mL" as any,
+    retainAmount: 0,
+    aliquots: [] as Aliquot[],
+    currentQuantity: 0,
     labelInfo: "",
     notes: ""
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Add final current location if not empty and not already added
     let finalLocations = [...formData.storageLocations];
     if (currentLocation.trim() && !finalLocations.includes(currentLocation.trim())) {
       finalLocations.push(currentLocation.trim());
@@ -50,11 +52,6 @@ export function AddMaterialForm({ onSave, onCancel }: AddMaterialFormProps) {
       ...formData,
       storageLocations: finalLocations
     });
-  };
-
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value === "" ? 0 : parseFloat(e.target.value);
-    setFormData({ ...formData, submittedVolume: isNaN(val) ? 0 : val });
   };
 
   const addLocation = () => {
@@ -71,6 +68,35 @@ export function AddMaterialForm({ onSave, onCancel }: AddMaterialFormProps) {
     setFormData({
       ...formData,
       storageLocations: formData.storageLocations.filter((_, i) => i !== index)
+    });
+  };
+
+  const addAliquot = () => {
+    const newAliquot: Aliquot = {
+      id: Math.random().toString(36).substr(2, 9),
+      count: 0,
+      size: 0
+    };
+    setFormData({
+      ...formData,
+      aliquots: [...formData.aliquots, newAliquot]
+    });
+  };
+
+  const removeAliquot = (id: string) => {
+    setFormData({
+      ...formData,
+      aliquots: formData.aliquots.filter(a => a.id !== id)
+    });
+  };
+
+  const updateAliquot = (id: string, field: 'count' | 'size', value: string) => {
+    const numValue = value === "" ? 0 : parseFloat(value);
+    setFormData({
+      ...formData,
+      aliquots: formData.aliquots.map(a => 
+        a.id === id ? { ...a, [field]: isNaN(numValue) ? 0 : numValue } : a
+      )
     });
   };
 
@@ -224,18 +250,19 @@ export function AddMaterialForm({ onSave, onCancel }: AddMaterialFormProps) {
           <Card>
             <CardHeader>
               <CardTitle>Quantity & Documentation</CardTitle>
-              <CardDescription>Specify the amount and any additional metadata.</CardDescription>
+              <CardDescription>Specify the amount and aliquot breakdowns.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="volume">Initial Amount</Label>
+                  <Label htmlFor="volume">Submitted Volume</Label>
                   <Input 
                     id="volume" 
                     type="number" 
                     step="0.01" 
-                    value={formData.submittedVolume === 0 ? "" : formData.submittedVolume.toString()}
-                    onChange={handleVolumeChange}
+                    placeholder="1982.00"
+                    value={formData.submittedVolume || ""}
+                    onChange={(e) => setFormData({...formData, submittedVolume: parseFloat(e.target.value) || 0})}
                     required 
                   />
                 </div>
@@ -260,6 +287,86 @@ export function AddMaterialForm({ onSave, onCancel }: AddMaterialFormProps) {
                       <SelectItem value="bottles">bottles</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="retain">Retain Amount</Label>
+                  <Input 
+                    id="retain" 
+                    type="number" 
+                    step="0.01" 
+                    placeholder="100.00"
+                    value={formData.retainAmount || ""}
+                    onChange={(e) => setFormData({...formData, retainAmount: parseFloat(e.target.value) || 0})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="currentQty">Available Volume (Current)</Label>
+                  <Input 
+                    id="currentQty" 
+                    type="number" 
+                    step="0.01" 
+                    placeholder="1950.00"
+                    value={formData.currentQuantity || ""}
+                    onChange={(e) => setFormData({...formData, currentQuantity: parseFloat(e.target.value) || 0})}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4 border-t pt-4 mt-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Aliquots</Label>
+                    <p className="text-xs text-muted-foreground">Track batches of smaller portions.</p>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={addAliquot}>
+                    <Plus className="h-4 w-4 mr-2" /> Add Aliquot
+                  </Button>
+                </div>
+                
+                {formData.aliquots.length === 0 && (
+                  <p className="text-sm text-muted-foreground italic text-center py-4 bg-muted/20 rounded-md border border-dashed">
+                    No aliquots recorded.
+                  </p>
+                )}
+
+                <div className="space-y-3">
+                  {formData.aliquots.map((aliquot) => (
+                    <div key={aliquot.id} className="flex items-end gap-4 bg-muted/30 p-3 rounded-lg border">
+                      <div className="flex-1 space-y-1.5">
+                        <Label className="text-xs">Count</Label>
+                        <Input 
+                          type="number" 
+                          placeholder="5" 
+                          value={aliquot.count || ""}
+                          onChange={(e) => updateAliquot(aliquot.id, 'count', e.target.value)}
+                        />
+                      </div>
+                      <div className="flex items-center pb-2.5 text-muted-foreground">x</div>
+                      <div className="flex-1 space-y-1.5">
+                        <Label className="text-xs">Size ({formData.unit})</Label>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          placeholder="10" 
+                          value={aliquot.size || ""}
+                          onChange={(e) => updateAliquot(aliquot.id, 'size', e.target.value)}
+                        />
+                      </div>
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-destructive hover:bg-destructive/10"
+                        onClick={() => removeAliquot(aliquot.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
               </div>
 
