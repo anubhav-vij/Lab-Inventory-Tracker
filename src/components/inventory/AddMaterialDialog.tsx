@@ -83,7 +83,7 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
           <div className="grid gap-6 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Scientific / Material Name</Label>
+                <Label htmlFor="name">Material Name</Label>
                 <SmartInput 
                   fieldName="Material Name" 
                   placeholder="e.g. Sodium Chloride" 
@@ -92,14 +92,22 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="project">Project Name</Label>
-                <Input 
-                  id="project" 
-                  placeholder="Project ID" 
-                  value={formData.project}
-                  onChange={(e) => setFormData({...formData, project: e.target.value})}
-                  required 
-                />
+                <Label htmlFor="project">Project Assignment</Label>
+                <Select 
+                  value={formData.project} 
+                  onValueChange={(v) => setFormData({...formData, project: v})}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Alpha-Chem">Alpha-Chem</SelectItem>
+                    <SelectItem value="Bio-React">Bio-React</SelectItem>
+                    <SelectItem value="Gamma-Lab">Gamma-Lab</SelectItem>
+                    <SelectItem value="Delta-Research">Delta-Research</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -157,7 +165,7 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="volume">Total Quantity</Label>
+                <Label htmlFor="volume">Initial Amount</Label>
                 <Input 
                   id="volume" 
                   type="number" 
@@ -198,7 +206,7 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notes">Additional Notes</Label>
+              <Label htmlFor="notes">Handling Notes</Label>
               <Textarea 
                 id="notes" 
                 placeholder="Specify special handling instructions..." 
