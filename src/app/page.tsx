@@ -133,6 +133,13 @@ export default function LabInventoryDashboard() {
     m.lotNumber.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const filteredTransactions = transactions.filter(t => 
+    t.materialName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    t.lotNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.recipient.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (t.notes && t.notes.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   const handleSaveMaterial = (data: Material | Omit<Material, 'id'>) => {
     if ('id' in data) {
       setMaterials(prev => prev.map(m => m.id === data.id ? data : m));
@@ -347,14 +354,14 @@ export default function LabInventoryDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {transactions.length === 0 ? (
+                  {filteredTransactions.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={9} className="text-center h-32 text-muted-foreground">
-                        No transactions recorded yet.
+                        {searchQuery ? "No transactions match your search." : "No transactions recorded yet."}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    transactions.map((t) => (
+                    filteredTransactions.map((t) => (
                       <TableRow key={t.id}>
                         <TableCell className="text-sm font-medium">{t.timestamp}</TableCell>
                         <TableCell className="font-semibold">{t.materialName}</TableCell>
