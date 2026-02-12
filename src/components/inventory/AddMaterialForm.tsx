@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -94,7 +93,7 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
             id: Math.random().toString(36).substr(2, 9),
             count: 0,
             size: 0,
-            unit: formData.unit
+            unit: formData.unit as MaterialUnit
           };
           return { ...entry, aliquots: [...entry.aliquots, newAliquot] };
         }

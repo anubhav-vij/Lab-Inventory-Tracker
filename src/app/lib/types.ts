@@ -44,6 +44,6 @@ export interface Transaction {
   timestamp: string; // User-selected transaction date
   recordedAt: string; // System time
   recipient: string;
-  aliquots: Aliquot[];
+  storageEntries: StorageEntry[];
   notes: string;
 }

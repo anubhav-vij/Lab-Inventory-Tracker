@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Material, Transaction, TransactionType, Aliquot, StorageEntry } from "@/app/lib/types";
+import { Material, Transaction, TransactionType, Aliquot, StorageEntry, MaterialUnit } from "@/app/lib/types";
 import { InventorySummary } from "@/components/inventory/InventorySummary";
 import { MaterialTable } from "@/components/inventory/MaterialTable";
 import { AddMaterialForm } from "@/components/inventory/AddMaterialForm";
@@ -56,8 +56,9 @@ const MOCK_MATERIALS: Material[] = [
         id: "loc1",
         location: "F81*S1*R5*B1",
         aliquots: [
-          { id: "a1", count: 5, size: 10, unit: "g" },
-          { id: "a2", count: 10, size: 5, unit: "g" }
+          { id: "a1", count: 21, size: 1, unit: "mL" },
+          { id: "a2", count: 1, size: 40, unit: "mL" },
+          { id: "a3", count: 8, size: 0.5, unit: "mL" }
         ]
       }
     ],
@@ -65,10 +66,10 @@ const MOCK_MATERIALS: Material[] = [
     submissionDate: "2024-03-01",
     storageCondition: "Ambient",
     submittedVolume: 500,
-    unit: "g",
+    unit: "mL",
     retainAmount: 10,
-    retainUnit: "g",
-    currentQuantity: 420,
+    retainUnit: "mL",
+    currentQuantity: 65,
     labelInfo: "Handle with care",
     notes: "High purity batch"
   }
@@ -84,30 +85,12 @@ export default function LabInventoryDashboard() {
   const [editingMaterial, setEditingMaterial] = React.useState<Material | null>(null);
   const { toast } = useToast();
 
-  // Load from localStorage on mount
   React.useEffect(() => {
     const savedMaterials = localStorage.getItem("lab_materials");
     const savedTransactions = localStorage.getItem("lab_transactions");
     
     if (savedMaterials) {
-      const parsed = JSON.parse(savedMaterials);
-      // Migrate legacy data to new storageEntries structure if needed
-      const migrated = parsed.map((m: any) => {
-        if (!m.storageEntries) {
-          const legacyLocations = m.storageLocations || [];
-          const legacyAliquots = m.aliquots || [];
-          return {
-            ...m,
-            storageEntries: legacyLocations.length > 0 ? legacyLocations.map((loc: string, idx: number) => ({
-              id: `migrated-${idx}`,
-              location: loc,
-              aliquots: idx === 0 ? legacyAliquots : []
-            })) : []
-          };
-        }
-        return m;
-      });
-      setMaterials(migrated);
+      setMaterials(JSON.parse(savedMaterials));
     } else {
       setMaterials(MOCK_MATERIALS);
     }
@@ -119,7 +102,6 @@ export default function LabInventoryDashboard() {
     setIsLoaded(true);
   }, []);
 
-  // Save to localStorage on changes
   React.useEffect(() => {
     if (isLoaded) {
       localStorage.setItem("lab_materials", JSON.stringify(materials));
@@ -142,7 +124,7 @@ export default function LabInventoryDashboard() {
 
   const handleSaveMaterial = (data: Material | Omit<Material, 'id'>) => {
     if ('id' in data) {
-      setMaterials(prev => prev.map(m => m.id === data.id ? data : m));
+      setMaterials(prev => prev.map(m => m.id === data.id ? data as Material : m));
       toast({
         title: "Material Updated",
         description: `${data.name} specifications have been saved.`
@@ -151,7 +133,7 @@ export default function LabInventoryDashboard() {
       const newMaterial: Material = {
         ...data,
         id: Math.random().toString(36).substr(2, 9)
-      };
+      } as Material;
       setMaterials([newMaterial, ...materials]);
       toast({
         title: "Material Added",
@@ -178,7 +160,7 @@ export default function LabInventoryDashboard() {
     unit: string;
     timestamp: string;
     recipient: string; 
-    aliquots: Aliquot[]; 
+    storageEntries: StorageEntry[]; 
     notes: string 
   }) => {
     if (!activeMaterial) return;
@@ -194,7 +176,7 @@ export default function LabInventoryDashboard() {
       timestamp: data.timestamp,
       recordedAt: new Date().toLocaleString(),
       recipient: data.recipient,
-      aliquots: data.aliquots,
+      storageEntries: data.storageEntries,
       notes: data.notes
     };
 
@@ -202,11 +184,33 @@ export default function LabInventoryDashboard() {
 
     setMaterials(prev => prev.map(m => {
       if (m.id === activeMaterial.id) {
-        let newQty = m.currentQuantity;
-        if (data.type === 'consumption') newQty -= data.quantity;
-        else if (data.type === 'addition') newQty += data.quantity;
-        else if (data.type === 'adjustment') newQty = data.quantity;
-        return { ...m, currentQuantity: Math.max(0, newQty) };
+        const updatedEntries = JSON.parse(JSON.stringify(m.storageEntries)) as StorageEntry[];
+        
+        data.storageEntries.forEach(tEntry => {
+          let mEntry = updatedEntries.find(e => e.location.trim() === tEntry.location.trim());
+          if (mEntry) {
+            tEntry.aliquots.forEach(tAliquot => {
+              let mAliquot = mEntry.aliquots.find(a => a.size === tAliquot.size && a.unit === tAliquot.unit);
+              if (mAliquot) {
+                if (data.type === 'consumption') {
+                  mAliquot.count = Math.max(0, mAliquot.count - tAliquot.count);
+                } else if (data.type === 'addition') {
+                  mAliquot.count += tAliquot.count;
+                }
+              } else if (data.type === 'addition') {
+                mEntry.aliquots.push({ ...tAliquot });
+              }
+            });
+          } else if (data.type === 'addition') {
+            updatedEntries.push({ ...tEntry });
+          }
+        });
+
+        const newTotal = updatedEntries.reduce((sum, entry) => {
+          return sum + entry.aliquots.reduce((aSum, a) => aSum + (a.count * a.size), 0);
+        }, 0);
+
+        return { ...m, storageEntries: updatedEntries, currentQuantity: newTotal };
       }
       return m;
     }));
@@ -222,13 +226,29 @@ export default function LabInventoryDashboard() {
   const handleDeleteTransaction = (transaction: Transaction) => {
     setMaterials(prev => prev.map(m => {
       if (m.id === transaction.materialId) {
-        let restoredQty = m.currentQuantity;
-        if (transaction.type === 'consumption') {
-          restoredQty += transaction.quantity;
-        } else if (transaction.type === 'addition') {
-          restoredQty -= transaction.quantity;
-        }
-        return { ...m, currentQuantity: Math.max(0, restoredQty) };
+        const updatedEntries = JSON.parse(JSON.stringify(m.storageEntries)) as StorageEntry[];
+        
+        transaction.storageEntries.forEach(tEntry => {
+          let mEntry = updatedEntries.find(e => e.location.trim() === tEntry.location.trim());
+          if (mEntry) {
+            tEntry.aliquots.forEach(tAliquot => {
+              let mAliquot = mEntry.aliquots.find(a => a.size === tAliquot.size && a.unit === tAliquot.unit);
+              if (mAliquot) {
+                if (transaction.type === 'consumption') {
+                  mAliquot.count += tAliquot.count;
+                } else if (transaction.type === 'addition') {
+                  mAliquot.count = Math.max(0, mAliquot.count - tAliquot.count);
+                }
+              }
+            });
+          }
+        });
+
+        const newTotal = updatedEntries.reduce((sum, entry) => {
+          return sum + entry.aliquots.reduce((aSum, a) => aSum + (a.count * a.size), 0);
+        }, 0);
+
+        return { ...m, storageEntries: updatedEntries, currentQuantity: newTotal };
       }
       return m;
     }));
@@ -346,7 +366,7 @@ export default function LabInventoryDashboard() {
                     <TableHead>Type</TableHead>
                     <TableHead>Change</TableHead>
                     <TableHead>Recipient</TableHead>
-                    <TableHead>Aliquots Given</TableHead>
+                    <TableHead>Storage & Aliquots Involved</TableHead>
                     <TableHead>Notes</TableHead>
                     <TableHead className="w-[100px] text-right">Actions</TableHead>
                   </TableRow>
@@ -387,12 +407,22 @@ export default function LabInventoryDashboard() {
                           ) : '-'}
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-col gap-0.5">
-                            {t.aliquots && t.aliquots.length > 0 ? (
-                              t.aliquots.map((a, i) => (
-                                <div key={i} className="flex items-center text-[10px] text-muted-foreground">
-                                  <Layers className="h-2.5 w-2.5 mr-1" />
-                                  {a.count} x {a.size} {a.unit}
+                          <div className="flex flex-col gap-3">
+                            {t.storageEntries && t.storageEntries.length > 0 ? (
+                              t.storageEntries.map((entry) => (
+                                <div key={entry.id} className="space-y-1">
+                                  <div className="flex items-center text-[10px] font-bold text-muted-foreground">
+                                    <MapPin className="h-2.5 w-2.5 mr-1 text-primary" />
+                                    {entry.location}
+                                  </div>
+                                  <div className="pl-3.5 space-y-0.5">
+                                    {entry.aliquots.map((a, i) => (
+                                      <div key={i} className="flex items-center text-[9px] text-muted-foreground">
+                                        <Layers className="h-2 w-2 mr-1" />
+                                        {a.count} x {a.size} {a.unit}
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
                               ))
                             ) : '-'}
@@ -412,7 +442,7 @@ export default function LabInventoryDashboard() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Delete Transaction?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This will remove the transaction record and attempt to restore the material's available quantity. This action cannot be undone.
+                                  This will remove the transaction record and restore the material's quantities in their specific storage locations. This action cannot be undone.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
