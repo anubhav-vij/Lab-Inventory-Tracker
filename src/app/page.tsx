@@ -20,7 +20,6 @@ import {
   Plus,
   User,
   Layers,
-  Trash2,
   MapPin
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -33,17 +32,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 const MOCK_MATERIALS: Material[] = [
   {
@@ -144,15 +132,6 @@ export default function LabInventoryDashboard() {
     setEditingMaterial(null);
   };
 
-  const handleDeleteMaterial = (id: string) => {
-    setMaterials(prev => prev.filter(m => m.id !== id));
-    setTransactions(prev => prev.filter(t => t.materialId !== id));
-    toast({
-      title: "Material Deleted",
-      description: "The material and its history have been removed."
-    });
-  };
-
   const handleOpenTransaction = (material: Material) => {
     setActiveMaterial(material);
     setView('transaction');
@@ -239,46 +218,6 @@ export default function LabInventoryDashboard() {
     });
     setView('dashboard');
     setActiveMaterial(null);
-  };
-
-  const handleDeleteTransaction = (transaction: Transaction) => {
-    setMaterials(prev => prev.map(m => {
-      if (m.id === transaction.materialId) {
-        const updatedEntries = JSON.parse(JSON.stringify(m.storageEntries)) as StorageEntry[];
-        
-        if (transaction.storageEntries && Array.isArray(transaction.storageEntries)) {
-          transaction.storageEntries.forEach(tEntry => {
-            let mEntry = updatedEntries.find(e => e.location.trim() === tEntry.location.trim());
-            if (mEntry) {
-              tEntry.aliquots.forEach(tAliquot => {
-                let mAliquot = mEntry!.aliquots.find(a => Number(a.size) === Number(tAliquot.size) && a.unit === tAliquot.unit);
-                if (mAliquot) {
-                  if (transaction.type === 'consumption') {
-                    mAliquot.count = Number(mAliquot.count) + Number(tAliquot.count);
-                  } else if (transaction.type === 'addition') {
-                    mAliquot.count = Math.max(0, Number(mAliquot.count) - Number(tAliquot.count));
-                  }
-                }
-              });
-            }
-          });
-        }
-
-        const newTotal = updatedEntries.reduce((sum, entry) => {
-          return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
-        }, 0);
-
-        return { ...m, storageEntries: updatedEntries, currentQuantity: Number(newTotal) };
-      }
-      return m;
-    }));
-
-    setTransactions(prev => prev.filter(t => t.id !== transaction.id));
-
-    toast({
-      title: "Transaction Deleted",
-      description: `Inventory for ${transaction.materialName} has been restored.`
-    });
   };
 
   if (!isLoaded) return null;
@@ -371,7 +310,6 @@ export default function LabInventoryDashboard() {
               materials={filteredMaterials} 
               onAddTransaction={handleOpenTransaction}
               onEdit={handleEditMaterial}
-              onDelete={handleDeleteMaterial}
               onViewDetails={() => {}}
             />
           </TabsContent>
@@ -389,13 +327,12 @@ export default function LabInventoryDashboard() {
                     <TableHead>Recipient</TableHead>
                     <TableHead>Storage & Aliquots Involved</TableHead>
                     <TableHead>Notes</TableHead>
-                    <TableHead className="w-[100px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredTransactions.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center h-32 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center h-32 text-muted-foreground">
                         {searchQuery ? "No transactions match your search." : "No transactions recorded yet."}
                       </TableCell>
                     </TableRow>
@@ -451,32 +388,6 @@ export default function LabInventoryDashboard() {
                         </TableCell>
                         <TableCell className="text-xs max-w-[150px] truncate" title={t.notes}>
                           {t.notes || '-'}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Transaction?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will remove the transaction record and restore the material's quantities in their specific storage locations. This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction 
-                                  onClick={() => handleDeleteTransaction(t)}
-                                  className="bg-destructive hover:bg-destructive/90"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
                         </TableCell>
                       </TableRow>
                     ))
