@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -5,6 +6,7 @@ import { Material, Aliquot, MaterialUnit, StorageEntry } from "@/app/lib/types";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { SmartInput } from "@/components/inventory/SmartInput";
 import {
   Select,
   SelectContent,
@@ -172,11 +174,12 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Material Name</Label>
-                  <Input 
+                  <SmartInput 
                     id="name"
+                    fieldName="Material Name"
                     placeholder="e.g. Sodium Chloride" 
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    defaultValue={formData.name}
+                    onValueChange={(v) => setFormData({...formData, name: v})}
                     required
                   />
                 </div>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -5,6 +6,7 @@ import { Material, TransactionType, Aliquot, MaterialUnit } from "@/app/lib/type
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { SmartInput } from "@/components/inventory/SmartInput";
 import {
   Select,
   SelectContent,
@@ -143,11 +145,12 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="recipient">Recipient / Authorized Personnel</Label>
-                  <Input 
+                  <SmartInput 
                     id="recipient"
+                    fieldName="Recipient Name"
                     placeholder="Full name or Employee ID" 
-                    value={formData.recipient}
-                    onChange={(e) => setFormData({...formData, recipient: e.target.value})}
+                    defaultValue={formData.recipient}
+                    onValueChange={(v) => setFormData({...formData, recipient: v})}
                     required={formData.type === 'consumption'}
                   />
                 </div>
@@ -160,7 +163,7 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
                       step="0.01" 
                       min="0"
                       placeholder="0.00"
-                      value={formData.quantity || ""}
+                      value={formData.quantity || 0}
                       onChange={(e) => handleNumericChange('quantity', e.target.value)}
                       required 
                       className="flex-1"
@@ -213,7 +216,7 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
                         type="number" 
                         min="0"
                         placeholder="1" 
-                        value={aliquot.count || ""}
+                        value={aliquot.count || 0}
                         onChange={(e) => updateAliquot(aliquot.id, 'count', e.target.value)}
                       />
                     </div>
@@ -225,7 +228,7 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
                         step="0.01" 
                         min="0"
                         placeholder="10.00" 
-                        value={aliquot.size || ""}
+                        value={aliquot.size || 0}
                         onChange={(e) => updateAliquot(aliquot.id, 'size', e.target.value)}
                       />
                     </div>
