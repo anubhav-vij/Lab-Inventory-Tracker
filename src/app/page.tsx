@@ -20,7 +20,8 @@ import {
   Plus,
   User,
   Layers,
-  MapPin
+  MapPin,
+  Trash2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -32,6 +33,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const MOCK_MATERIALS: Material[] = [
   {
@@ -220,6 +232,46 @@ export default function LabInventoryDashboard() {
     setActiveMaterial(null);
   };
 
+  const handleDeleteTransaction = (transaction: Transaction) => {
+    setMaterials(prev => prev.map(m => {
+      if (m.id === transaction.materialId) {
+        const updatedEntries = JSON.parse(JSON.stringify(m.storageEntries)) as StorageEntry[];
+        
+        if (transaction.storageEntries && Array.isArray(transaction.storageEntries)) {
+          transaction.storageEntries.forEach(tEntry => {
+            let mEntry = updatedEntries.find(e => e.location.trim() === tEntry.location.trim());
+            if (mEntry) {
+              tEntry.aliquots.forEach(tAliquot => {
+                let mAliquot = mEntry!.aliquots.find(a => Number(a.size) === Number(tAliquot.size) && a.unit === tAliquot.unit);
+                if (mAliquot) {
+                  // Reverse the operation
+                  if (transaction.type === 'consumption') {
+                    mAliquot.count = Number(mAliquot.count) + Number(tAliquot.count);
+                  } else if (transaction.type === 'addition') {
+                    mAliquot.count = Math.max(0, Number(mAliquot.count) - Number(tAliquot.count));
+                  }
+                }
+              });
+            }
+          });
+        }
+
+        const newTotal = updatedEntries.reduce((sum, entry) => {
+          return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
+        }, 0);
+
+        return { ...m, storageEntries: updatedEntries, currentQuantity: Number(newTotal) };
+      }
+      return m;
+    }));
+
+    setTransactions(prev => prev.filter(t => t.id !== transaction.id));
+    toast({
+      title: "Transaction Deleted",
+      description: "Inventory levels have been restored."
+    });
+  };
+
   if (!isLoaded) return null;
 
   if (view === 'add' || view === 'edit') {
@@ -327,12 +379,13 @@ export default function LabInventoryDashboard() {
                     <TableHead>Recipient</TableHead>
                     <TableHead>Storage & Aliquots Involved</TableHead>
                     <TableHead>Notes</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredTransactions.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center h-32 text-muted-foreground">
+                      <TableCell colSpan={9} className="text-center h-32 text-muted-foreground">
                         {searchQuery ? "No transactions match your search." : "No transactions recorded yet."}
                       </TableCell>
                     </TableRow>
@@ -388,6 +441,33 @@ export default function LabInventoryDashboard() {
                         </TableCell>
                         <TableCell className="text-xs max-w-[150px] truncate" title={t.notes}>
                           {t.notes || '-'}
+                        </TableCell>
+                        <TableCell>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Transaction Log?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will remove the transaction record and reverse the inventory change. 
+                                  Consumed volume will be added back, or added volume will be removed.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  onClick={() => handleDeleteTransaction(t)}
+                                >
+                                  Confirm Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </TableCell>
                       </TableRow>
                     ))
