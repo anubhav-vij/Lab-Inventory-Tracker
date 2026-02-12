@@ -5,7 +5,6 @@ import { Material, TransactionType, Aliquot, MaterialUnit, StorageEntry } from "
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { SmartInput } from "@/components/inventory/SmartInput";
 import {
   Select,
   SelectContent,
@@ -214,12 +213,11 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="recipient">Recipient / Authorized Personnel</Label>
-                  <SmartInput 
+                  <Input 
                     id="recipient"
-                    fieldName="Recipient Name"
                     placeholder="Full name or Employee ID" 
-                    defaultValue={formData.recipient}
-                    onValueChange={(v) => setFormData({...formData, recipient: v})}
+                    value={formData.recipient}
+                    onChange={(e) => setFormData({...formData, recipient: e.target.value})}
                     required={formData.type === 'consumption'}
                   />
                 </div>
