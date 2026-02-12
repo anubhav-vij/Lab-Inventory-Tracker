@@ -9,12 +9,18 @@ export interface Aliquot {
   unit: MaterialUnit;
 }
 
+export interface StorageEntry {
+  id: string;
+  location: string;
+  aliquots: Aliquot[];
+}
+
 export interface Material {
   id: string;
   name: string;
   project: string;
   lotNumber: string;
-  storageLocations: string[];
+  storageEntries: StorageEntry[];
   concentration: string;
   submissionDate: string;
   storageCondition: string;
@@ -22,7 +28,6 @@ export interface Material {
   unit: MaterialUnit;
   retainAmount: number;
   retainUnit: MaterialUnit;
-  aliquots: Aliquot[];
   currentQuantity: number;
   labelInfo: string;
   notes: string;

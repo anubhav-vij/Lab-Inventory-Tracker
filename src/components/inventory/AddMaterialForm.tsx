@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Material, Aliquot, MaterialUnit } from "@/app/lib/types";
+import { Material, Aliquot, MaterialUnit, StorageEntry } from "@/app/lib/types";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, X, FlaskConical, Trash2, Save } from "lucide-react";
+import { ArrowLeft, Plus, X, FlaskConical, Trash2, Save, MapPin, Layers } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
@@ -26,12 +26,11 @@ interface AddMaterialFormProps {
 const UNITS: MaterialUnit[] = ['mL', 'L', 'µL', 'mg', 'g', 'kg', 'units', 'vials', 'bottles'];
 
 export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFormProps) {
-  const [currentLocation, setCurrentLocation] = React.useState("");
   const [formData, setFormData] = React.useState({
     name: initialData?.name || "",
     project: initialData?.project || "",
     lotNumber: initialData?.lotNumber || "",
-    storageLocations: initialData?.storageLocations || [],
+    storageEntries: initialData?.storageEntries || [] as StorageEntry[],
     concentration: initialData?.concentration || "",
     submissionDate: initialData?.submissionDate || new Date().toISOString().split('T')[0],
     storageCondition: initialData?.storageCondition || "Ambient",
@@ -39,7 +38,6 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
     unit: initialData?.unit || "mL",
     retainAmount: initialData?.retainAmount ?? 0,
     retainUnit: initialData?.retainUnit || "mL",
-    aliquots: initialData?.aliquots || [],
     currentQuantity: initialData?.currentQuantity ?? 0,
     labelInfo: initialData?.labelInfo || "",
     notes: initialData?.notes || ""
@@ -49,70 +47,93 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    let finalLocations = [...formData.storageLocations];
-    if (currentLocation.trim() && !finalLocations.includes(currentLocation.trim())) {
-      finalLocations.push(currentLocation.trim());
-    }
     
-    const submissionData = {
-      ...formData,
-      storageLocations: finalLocations
-    };
-
     if (isEditing) {
-      onSave({ ...submissionData, id: initialData.id } as Material);
+      onSave({ ...formData, id: initialData.id } as Material);
     } else {
-      onSave(submissionData as Omit<Material, 'id'>);
+      onSave(formData as Omit<Material, 'id'>);
     }
   };
 
-  const addLocation = () => {
-    if (currentLocation.trim() && !formData.storageLocations.includes(currentLocation.trim())) {
-      setFormData({
-        ...formData,
-        storageLocations: [...formData.storageLocations, currentLocation.trim()]
-      });
-      setCurrentLocation("");
-    }
-  };
-
-  const removeLocation = (index: number) => {
-    setFormData({
-      ...formData,
-      storageLocations: formData.storageLocations.filter((_, i) => i !== index)
-    });
-  };
-
-  const addAliquot = () => {
-    const newAliquot: Aliquot = {
+  const addStorageEntry = () => {
+    const newEntry: StorageEntry = {
       id: Math.random().toString(36).substr(2, 9),
-      count: 0,
-      size: 0,
-      unit: formData.unit
+      location: "",
+      aliquots: []
     };
     setFormData({
       ...formData,
-      aliquots: [...formData.aliquots, newAliquot]
+      storageEntries: [...formData.storageEntries, newEntry]
     });
   };
 
-  const removeAliquot = (id: string) => {
+  const updateStorageEntry = (id: string, location: string) => {
     setFormData({
       ...formData,
-      aliquots: formData.aliquots.filter(a => a.id !== id)
+      storageEntries: formData.storageEntries.map(entry => 
+        entry.id === id ? { ...entry, location } : entry
+      )
     });
   };
 
-  const updateAliquot = (id: string, field: keyof Aliquot, value: any) => {
+  const removeStorageEntry = (id: string) => {
+    setFormData({
+      ...formData,
+      storageEntries: formData.storageEntries.filter(entry => entry.id !== id)
+    });
+  };
+
+  const addAliquotToEntry = (entryId: string) => {
+    setFormData({
+      ...formData,
+      storageEntries: formData.storageEntries.map(entry => {
+        if (entry.id === entryId) {
+          const newAliquot: Aliquot = {
+            id: Math.random().toString(36).substr(2, 9),
+            count: 0,
+            size: 0,
+            unit: formData.unit
+          };
+          return { ...entry, aliquots: [...entry.aliquots, newAliquot] };
+        }
+        return entry;
+      })
+    });
+  };
+
+  const updateAliquotInEntry = (entryId: string, aliquotId: string, field: keyof Aliquot, value: any) => {
     let sanitizedValue = value;
     if (field === 'count' || field === 'size') {
       sanitizedValue = Math.max(0, parseFloat(value) || 0);
     }
     setFormData({
       ...formData,
-      aliquots: formData.aliquots.map(a => 
-        a.id === id ? { ...a, [field]: sanitizedValue } : a
-      )
+      storageEntries: formData.storageEntries.map(entry => {
+        if (entry.id === entryId) {
+          return {
+            ...entry,
+            aliquots: entry.aliquots.map(a => 
+              a.id === aliquotId ? { ...a, [field]: sanitizedValue } : a
+            )
+          };
+        }
+        return entry;
+      })
+    });
+  };
+
+  const removeAliquotFromEntry = (entryId: string, aliquotId: string) => {
+    setFormData({
+      ...formData,
+      storageEntries: formData.storageEntries.map(entry => {
+        if (entry.id === entryId) {
+          return {
+            ...entry,
+            aliquots: entry.aliquots.filter(a => a.id !== aliquotId)
+          };
+        }
+        return entry;
+      })
     });
   };
 
@@ -204,43 +225,114 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Storage & Handling</CardTitle>
-              <CardDescription>Define where and how the material should be kept.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-6">
-              <div className="space-y-2">
-                <Label>Storage Locations</Label>
-                <div className="flex gap-2">
-                  <Input 
-                    placeholder="e.g. Freezer -80 Shelf A" 
-                    value={currentLocation}
-                    onChange={(e) => setCurrentLocation(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        addLocation();
-                      }
-                    }}
-                  />
-                  <Button type="button" variant="outline" onClick={addLocation}>
-                    <Plus className="h-4 w-4 mr-2" /> Add Location
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.storageLocations.length === 0 && !currentLocation && (
-                    <span className="text-sm text-muted-foreground italic">No locations added yet.</span>
-                  )}
-                  {formData.storageLocations.map((loc, index) => (
-                    <Badge key={index} variant="secondary" className="px-3 py-1.5 flex items-center gap-2">
-                      {loc}
-                      <X className="h-3.5 w-3.5 cursor-pointer hover:text-destructive" onClick={() => removeLocation(index)} />
-                    </Badge>
-                  ))}
-                </div>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Storage & Aliquots</CardTitle>
+                <CardDescription>Map specific aliquots to their storage locations.</CardDescription>
               </div>
+              <Button type="button" variant="outline" size="sm" onClick={addStorageEntry}>
+                <MapPin className="h-4 w-4 mr-2" /> Add Location
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {formData.storageEntries.length === 0 && (
+                <div className="text-center py-12 border-2 border-dashed rounded-lg bg-muted/20">
+                  <MapPin className="h-12 w-12 mx-auto text-muted-foreground mb-4 opacity-20" />
+                  <p className="text-muted-foreground italic">No storage entries mapped. Click 'Add Location' to start.</p>
+                </div>
+              )}
+              
+              {formData.storageEntries.map((entry) => (
+                <div key={entry.id} className="p-4 border rounded-xl bg-card shadow-sm space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1 space-y-2">
+                      <Label className="text-xs uppercase font-bold text-muted-foreground">Location Path</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          placeholder="e.g. F81*S1*R5*B1" 
+                          className="pl-9"
+                          value={entry.location}
+                          onChange={(e) => updateStorageEntry(entry.id, e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="icon" 
+                      className="mt-6 text-destructive hover:bg-destructive/10"
+                      onClick={() => removeStorageEntry(entry.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3 pl-4 border-l-2 border-muted">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold flex items-center gap-2">
+                        <Layers className="h-3 w-3" /> Aliquots at this location
+                      </Label>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => addAliquotToEntry(entry.id)} className="h-7 text-xs">
+                        <Plus className="h-3 w-3 mr-1" /> Add Aliquot Set
+                      </Button>
+                    </div>
+
+                    {entry.aliquots.map((aliquot) => (
+                      <div key={aliquot.id} className="flex items-end gap-3 bg-muted/30 p-2 rounded-lg border group relative">
+                        <div className="w-20 space-y-1">
+                          <Label className="text-[10px]">Count</Label>
+                          <Input 
+                            type="number" 
+                            min="0"
+                            className="h-8 text-xs"
+                            value={aliquot.count}
+                            onChange={(e) => updateAliquotInEntry(entry.id, aliquot.id, 'count', e.target.value)}
+                          />
+                        </div>
+                        <div className="pb-1.5 text-muted-foreground text-xs">x</div>
+                        <div className="flex-1 space-y-1">
+                          <Label className="text-[10px]">Size</Label>
+                          <Input 
+                            type="number" 
+                            step="0.01" 
+                            min="0"
+                            className="h-8 text-xs"
+                            value={aliquot.size}
+                            onChange={(e) => updateAliquotInEntry(entry.id, aliquot.id, 'size', e.target.value)}
+                          />
+                        </div>
+                        <div className="w-24 space-y-1">
+                          <Label className="text-[10px]">Unit</Label>
+                          <Select 
+                            value={aliquot.unit} 
+                            onValueChange={(v) => updateAliquotInEntry(entry.id, aliquot.id, 'unit', v as MaterialUnit)}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removeAliquotFromEntry(entry.id, aliquot.id)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
                 <div className="space-y-2">
                   <Label htmlFor="condition">Storage Condition</Label>
                   <Select 
@@ -274,8 +366,8 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
 
           <Card>
             <CardHeader>
-              <CardTitle>Quantity & Documentation</CardTitle>
-              <CardDescription>Specify the amount and aliquot breakdowns.</CardDescription>
+              <CardTitle>Quantities & Retain</CardTitle>
+              <CardDescription>Specify the total amounts and what is held back.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -287,7 +379,6 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
                       type="number" 
                       step="0.01" 
                       min="0"
-                      placeholder="1982.00"
                       value={formData.submittedVolume}
                       onChange={(e) => handleNumericChange('submittedVolume', e.target.value)}
                       required 
@@ -314,7 +405,6 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
                       type="number" 
                       step="0.01" 
                       min="0"
-                      placeholder="1950.00"
                       value={formData.currentQuantity}
                       onChange={(e) => handleNumericChange('currentQuantity', e.target.value)}
                       required
@@ -336,7 +426,6 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
                       type="number" 
                       step="0.01" 
                       min="0"
-                      placeholder="100.00"
                       value={formData.retainAmount}
                       onChange={(e) => handleNumericChange('retainAmount', e.target.value)}
                       className="flex-1"
@@ -356,77 +445,7 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
                 </div>
               </div>
 
-              <div className="space-y-4 border-t pt-4 mt-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Aliquots</Label>
-                    <p className="text-xs text-muted-foreground">Track batches of smaller portions.</p>
-                  </div>
-                  <Button type="button" variant="outline" size="sm" onClick={addAliquot}>
-                    <Plus className="h-4 w-4 mr-2" /> Add Aliquot
-                  </Button>
-                </div>
-                
-                {formData.aliquots.length === 0 && (
-                  <p className="text-sm text-muted-foreground italic text-center py-4 bg-muted/20 rounded-md border border-dashed">
-                    No aliquots recorded.
-                  </p>
-                )}
-
-                <div className="space-y-3">
-                  {formData.aliquots.map((aliquot) => (
-                    <div key={aliquot.id} className="flex items-end gap-3 bg-muted/30 p-3 rounded-lg border">
-                      <div className="w-24 space-y-1.5">
-                        <Label className="text-xs">Count</Label>
-                        <Input 
-                          type="number" 
-                          min="0"
-                          placeholder="5" 
-                          value={aliquot.count}
-                          onChange={(e) => updateAliquot(aliquot.id, 'count', e.target.value)}
-                        />
-                      </div>
-                      <div className="flex items-center pb-2.5 text-muted-foreground">x</div>
-                      <div className="flex-1 space-y-1.5">
-                        <Label className="text-xs">Size</Label>
-                        <Input 
-                          type="number" 
-                          step="0.01" 
-                          min="0"
-                          placeholder="10" 
-                          value={aliquot.size}
-                          onChange={(e) => updateAliquot(aliquot.id, 'size', e.target.value)}
-                        />
-                      </div>
-                      <div className="w-[110px] space-y-1.5">
-                        <Label className="text-xs">Unit</Label>
-                        <Select 
-                          value={aliquot.unit} 
-                          onValueChange={(v) => updateAliquot(aliquot.id, 'unit', v as MaterialUnit)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="icon" 
-                        className="text-destructive hover:bg-destructive/10"
-                        onClick={() => removeAliquot(aliquot.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
+              <div className="space-y-2 border-t pt-4">
                 <Label htmlFor="labelInfo">Label Information</Label>
                 <Input 
                   id="labelInfo" 

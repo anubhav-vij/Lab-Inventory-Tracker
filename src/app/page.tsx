@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Material, Transaction, TransactionType, Aliquot } from "@/app/lib/types";
+import { Material, Transaction, TransactionType, Aliquot, StorageEntry } from "@/app/lib/types";
 import { InventorySummary } from "@/components/inventory/InventorySummary";
 import { MaterialTable } from "@/components/inventory/MaterialTable";
 import { AddMaterialForm } from "@/components/inventory/AddMaterialForm";
@@ -20,7 +20,8 @@ import {
   Plus,
   User,
   Layers,
-  Trash2
+  Trash2,
+  MapPin
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -50,36 +51,26 @@ const MOCK_MATERIALS: Material[] = [
     name: "Sodium Chloride",
     project: "Alpha-Chem",
     lotNumber: "NaCl-2024-01",
-    storageLocations: ["Shelf 12, Bin B"],
+    storageEntries: [
+      {
+        id: "loc1",
+        location: "F81*S1*R5*B1",
+        aliquots: [
+          { id: "a1", count: 5, size: 10, unit: "g" },
+          { id: "a2", count: 10, size: 5, unit: "g" }
+        ]
+      }
+    ],
     concentration: "Analytical Grade",
     submissionDate: "2024-03-01",
     storageCondition: "Ambient",
     submittedVolume: 500,
     unit: "g",
-    retainAmount: 0,
+    retainAmount: 10,
     retainUnit: "g",
-    aliquots: [],
     currentQuantity: 420,
     labelInfo: "Handle with care",
     notes: "High purity batch"
-  },
-  {
-    id: "2",
-    name: "Buffer Solution pH 7.0",
-    project: "Bio-React",
-    lotNumber: "BUF-PH7-101",
-    storageLocations: ["Fridge #4, Shelf 2"],
-    concentration: "NIST Traceable",
-    submissionDate: "2024-03-15",
-    storageCondition: "4°C Fridge",
-    submittedVolume: 1000,
-    unit: "mL",
-    retainAmount: 50,
-    retainUnit: "mL",
-    aliquots: [{ id: "a1", count: 10, size: 5, unit: "mL" }],
-    currentQuantity: 0,
-    labelInfo: "Light sensitive",
-    notes: "Calibration standard"
   }
 ];
 
@@ -100,13 +91,22 @@ export default function LabInventoryDashboard() {
     
     if (savedMaterials) {
       const parsed = JSON.parse(savedMaterials);
-      const migrated = parsed.map((m: any) => ({
-        ...m,
-        storageLocations: Array.isArray(m.storageLocations) ? m.storageLocations : (m.storageLocation ? [m.storageLocation] : []),
-        retainAmount: m.retainAmount ?? 0,
-        retainUnit: m.retainUnit ?? m.unit ?? "mL",
-        aliquots: Array.isArray(m.aliquots) ? m.aliquots : []
-      }));
+      // Migrate legacy data to new storageEntries structure if needed
+      const migrated = parsed.map((m: any) => {
+        if (!m.storageEntries) {
+          const legacyLocations = m.storageLocations || [];
+          const legacyAliquots = m.aliquots || [];
+          return {
+            ...m,
+            storageEntries: legacyLocations.length > 0 ? legacyLocations.map((loc: string, idx: number) => ({
+              id: `migrated-${idx}`,
+              location: loc,
+              aliquots: idx === 0 ? legacyAliquots : []
+            })) : []
+          };
+        }
+        return m;
+      });
       setMaterials(migrated);
     } else {
       setMaterials(MOCK_MATERIALS);
@@ -220,7 +220,6 @@ export default function LabInventoryDashboard() {
   };
 
   const handleDeleteTransaction = (transaction: Transaction) => {
-    // 1. Revert the quantity on the material
     setMaterials(prev => prev.map(m => {
       if (m.id === transaction.materialId) {
         let restoredQty = m.currentQuantity;
@@ -234,7 +233,6 @@ export default function LabInventoryDashboard() {
       return m;
     }));
 
-    // 2. Remove from transaction list
     setTransactions(prev => prev.filter(t => t.id !== transaction.id));
 
     toast({
@@ -391,8 +389,8 @@ export default function LabInventoryDashboard() {
                         <TableCell>
                           <div className="flex flex-col gap-0.5">
                             {t.aliquots && t.aliquots.length > 0 ? (
-                              t.aliquots.map((a) => (
-                                <div key={a.id} className="flex items-center text-[10px] text-muted-foreground">
+                              t.aliquots.map((a, i) => (
+                                <div key={i} className="flex items-center text-[10px] text-muted-foreground">
                                   <Layers className="h-2.5 w-2.5 mr-1" />
                                   {a.count} x {a.size} {a.unit}
                                 </div>

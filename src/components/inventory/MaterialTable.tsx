@@ -38,9 +38,8 @@ export function MaterialTable({ materials, onAddTransaction, onEdit, onViewDetai
           <TableRow>
             <TableHead className="w-[180px]">Material Name</TableHead>
             <TableHead>Project</TableHead>
-            <TableHead>Location(s)</TableHead>
+            <TableHead>Mapped Storage & Aliquots</TableHead>
             <TableHead>Lot #</TableHead>
-            <TableHead>Aliquots</TableHead>
             <TableHead>Condition</TableHead>
             <TableHead className="text-right">Available Quantity</TableHead>
             <TableHead className="w-[100px]"></TableHead>
@@ -49,7 +48,7 @@ export function MaterialTable({ materials, onAddTransaction, onEdit, onViewDetai
         <TableBody>
           {materials.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="text-center h-32 text-muted-foreground">
+              <TableCell colSpan={7} className="text-center h-32 text-muted-foreground">
                 No materials found. Add your first material to get started.
               </TableCell>
             </TableRow>
@@ -79,34 +78,33 @@ export function MaterialTable({ materials, onAddTransaction, onEdit, onViewDetai
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col gap-1">
-                      {m.storageLocations && m.storageLocations.length > 0 ? (
-                        m.storageLocations.map((loc, i) => (
-                          <div key={i} className="flex items-center text-xs text-muted-foreground">
-                            <MapPin className="h-3 w-3 mr-1 shrink-0" />
-                            <span className="truncate max-w-[120px]">{loc}</span>
+                    <div className="flex flex-col gap-3">
+                      {m.storageEntries && m.storageEntries.length > 0 ? (
+                        m.storageEntries.map((entry) => (
+                          <div key={entry.id} className="space-y-1">
+                            <div className="flex items-center text-xs font-bold text-muted-foreground">
+                              <MapPin className="h-3 w-3 mr-1 shrink-0 text-primary" />
+                              <span className="truncate max-w-[150px]">{entry.location}</span>
+                            </div>
+                            <div className="pl-4 space-y-0.5">
+                              {entry.aliquots.map((a, i) => (
+                                <div key={i} className="flex items-center text-[10px] text-muted-foreground">
+                                  <Layers className="h-2.5 w-2.5 mr-1 shrink-0" />
+                                  <span>{a.count} x {a.size} {a.unit}</span>
+                                </div>
+                              ))}
+                              {entry.aliquots.length === 0 && (
+                                <div className="text-[10px] text-muted-foreground italic">No aliquots</div>
+                              )}
+                            </div>
                           </div>
                         ))
                       ) : (
-                        <span className="text-xs text-muted-foreground italic">No location set</span>
+                        <span className="text-xs text-muted-foreground italic">No mapping set</span>
                       )}
                     </div>
                   </TableCell>
                   <TableCell className="font-mono text-xs">{m.lotNumber}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-col gap-1">
-                      {m.aliquots && m.aliquots.length > 0 ? (
-                        m.aliquots.map((a) => (
-                          <div key={a.id} className="flex items-center text-xs text-muted-foreground">
-                            <Layers className="h-3 w-3 mr-1 shrink-0" />
-                            <span className="whitespace-nowrap">{a.count} x {a.size} {a.unit}</span>
-                          </div>
-                        ))
-                      ) : (
-                        <span className="text-xs text-muted-foreground italic">None</span>
-                      )}
-                    </div>
-                  </TableCell>
                   <TableCell>
                     <div className="flex items-center text-sm">
                       <Thermometer className="h-3 w-3 mr-1 text-muted-foreground" />
