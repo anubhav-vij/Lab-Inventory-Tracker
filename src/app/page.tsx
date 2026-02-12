@@ -176,7 +176,7 @@ export default function LabInventoryDashboard() {
       timestamp: data.timestamp,
       recordedAt: new Date().toLocaleString(),
       recipient: data.recipient,
-      storageEntries: data.storageEntries,
+      storageEntries: data.storageEntries || [],
       notes: data.notes
     };
 
@@ -186,25 +186,27 @@ export default function LabInventoryDashboard() {
       if (m.id === activeMaterial.id) {
         const updatedEntries = JSON.parse(JSON.stringify(m.storageEntries)) as StorageEntry[];
         
-        data.storageEntries.forEach(tEntry => {
-          let mEntry = updatedEntries.find(e => e.location.trim() === tEntry.location.trim());
-          if (mEntry) {
-            tEntry.aliquots.forEach(tAliquot => {
-              let mAliquot = mEntry.aliquots.find(a => a.size === tAliquot.size && a.unit === tAliquot.unit);
-              if (mAliquot) {
-                if (data.type === 'consumption') {
-                  mAliquot.count = Math.max(0, mAliquot.count - tAliquot.count);
+        if (data.storageEntries) {
+          data.storageEntries.forEach(tEntry => {
+            let mEntry = updatedEntries.find(e => e.location.trim() === tEntry.location.trim());
+            if (mEntry) {
+              tEntry.aliquots.forEach(tAliquot => {
+                let mAliquot = mEntry!.aliquots.find(a => a.size === tAliquot.size && a.unit === tAliquot.unit);
+                if (mAliquot) {
+                  if (data.type === 'consumption') {
+                    mAliquot.count = Math.max(0, mAliquot.count - tAliquot.count);
+                  } else if (data.type === 'addition') {
+                    mAliquot.count += tAliquot.count;
+                  }
                 } else if (data.type === 'addition') {
-                  mAliquot.count += tAliquot.count;
+                  mEntry!.aliquots.push({ ...tAliquot });
                 }
-              } else if (data.type === 'addition') {
-                mEntry.aliquots.push({ ...tAliquot });
-              }
-            });
-          } else if (data.type === 'addition') {
-            updatedEntries.push({ ...tEntry });
-          }
-        });
+              });
+            } else if (data.type === 'addition') {
+              updatedEntries.push({ ...tEntry });
+            }
+          });
+        }
 
         const newTotal = updatedEntries.reduce((sum, entry) => {
           return sum + entry.aliquots.reduce((aSum, a) => aSum + (a.count * a.size), 0);
@@ -228,21 +230,23 @@ export default function LabInventoryDashboard() {
       if (m.id === transaction.materialId) {
         const updatedEntries = JSON.parse(JSON.stringify(m.storageEntries)) as StorageEntry[];
         
-        transaction.storageEntries.forEach(tEntry => {
-          let mEntry = updatedEntries.find(e => e.location.trim() === tEntry.location.trim());
-          if (mEntry) {
-            tEntry.aliquots.forEach(tAliquot => {
-              let mAliquot = mEntry.aliquots.find(a => a.size === tAliquot.size && a.unit === tAliquot.unit);
-              if (mAliquot) {
-                if (transaction.type === 'consumption') {
-                  mAliquot.count += tAliquot.count;
-                } else if (transaction.type === 'addition') {
-                  mAliquot.count = Math.max(0, mAliquot.count - tAliquot.count);
+        if (transaction.storageEntries) {
+          transaction.storageEntries.forEach(tEntry => {
+            let mEntry = updatedEntries.find(e => e.location.trim() === tEntry.location.trim());
+            if (mEntry) {
+              tEntry.aliquots.forEach(tAliquot => {
+                let mAliquot = mEntry!.aliquots.find(a => a.size === tAliquot.size && a.unit === tAliquot.unit);
+                if (mAliquot) {
+                  if (transaction.type === 'consumption') {
+                    mAliquot.count += tAliquot.count;
+                  } else if (transaction.type === 'addition') {
+                    mAliquot.count = Math.max(0, mAliquot.count - tAliquot.count);
+                  }
                 }
-              }
-            });
-          }
-        });
+              });
+            }
+          });
+        }
 
         const newTotal = updatedEntries.reduce((sum, entry) => {
           return sum + entry.aliquots.reduce((aSum, a) => aSum + (a.count * a.size), 0);
