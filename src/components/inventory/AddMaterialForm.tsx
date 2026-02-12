@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Plus, X, FlaskConical, Trash2, Save, MapPin, Layers } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 interface AddMaterialFormProps {
@@ -34,11 +33,11 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
     concentration: initialData?.concentration || "",
     submissionDate: initialData?.submissionDate || new Date().toISOString().split('T')[0],
     storageCondition: initialData?.storageCondition || "Ambient",
-    submittedVolume: initialData?.submittedVolume ?? 0,
+    submittedVolume: Number(initialData?.submittedVolume ?? 0),
     unit: initialData?.unit || "mL",
-    retainAmount: initialData?.retainAmount ?? 0,
+    retainAmount: Number(initialData?.retainAmount ?? 0),
     retainUnit: initialData?.retainUnit || "mL",
-    currentQuantity: initialData?.currentQuantity ?? 0,
+    currentQuantity: Number(initialData?.currentQuantity ?? 0),
     labelInfo: initialData?.labelInfo || "",
     notes: initialData?.notes || ""
   });
@@ -48,10 +47,22 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Final recalculation of currentQuantity to ensure accuracy
+    const totalVolume = formData.storageEntries.reduce((sum, entry) => {
+      return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
+    }, 0);
+
+    const dataToSave = {
+      ...formData,
+      currentQuantity: totalVolume,
+      submittedVolume: Number(formData.submittedVolume),
+      retainAmount: Number(formData.retainAmount)
+    };
+
     if (isEditing) {
-      onSave({ ...formData, id: initialData.id } as Material);
+      onSave({ ...dataToSave, id: initialData.id } as Material);
     } else {
-      onSave(formData as Omit<Material, 'id'>);
+      onSave(dataToSave as Omit<Material, 'id'>);
     }
   };
 
@@ -106,34 +117,49 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
     if (field === 'count' || field === 'size') {
       sanitizedValue = Math.max(0, parseFloat(value) || 0);
     }
+    
+    const updatedEntries = formData.storageEntries.map(entry => {
+      if (entry.id === entryId) {
+        return {
+          ...entry,
+          aliquots: entry.aliquots.map(a => 
+            a.id === aliquotId ? { ...a, [field]: sanitizedValue } : a
+          )
+        };
+      }
+      return entry;
+    });
+
+    const totalVolume = updatedEntries.reduce((sum, entry) => {
+      return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
+    }, 0);
+
     setFormData({
       ...formData,
-      storageEntries: formData.storageEntries.map(entry => {
-        if (entry.id === entryId) {
-          return {
-            ...entry,
-            aliquots: entry.aliquots.map(a => 
-              a.id === aliquotId ? { ...a, [field]: sanitizedValue } : a
-            )
-          };
-        }
-        return entry;
-      })
+      storageEntries: updatedEntries,
+      currentQuantity: totalVolume
     });
   };
 
   const removeAliquotFromEntry = (entryId: string, aliquotId: string) => {
+    const updatedEntries = formData.storageEntries.map(entry => {
+      if (entry.id === entryId) {
+        return {
+          ...entry,
+          aliquots: entry.aliquots.filter(a => a.id !== aliquotId)
+        };
+      }
+      return entry;
+    });
+
+    const totalVolume = updatedEntries.reduce((sum, entry) => {
+      return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
+    }, 0);
+
     setFormData({
       ...formData,
-      storageEntries: formData.storageEntries.map(entry => {
-        if (entry.id === entryId) {
-          return {
-            ...entry,
-            aliquots: entry.aliquots.filter(a => a.id !== aliquotId)
-          };
-        }
-        return entry;
-      })
+      storageEntries: updatedEntries,
+      currentQuantity: totalVolume
     });
   };
 

@@ -46,7 +46,10 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    onSave({
+      ...formData,
+      quantity: Number(formData.quantity)
+    });
   };
 
   const addStorageEntry = () => {
@@ -71,9 +74,15 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
   };
 
   const removeStorageEntry = (id: string) => {
+    const updatedEntries = formData.storageEntries.filter(entry => entry.id !== id);
+    const totalVolume = updatedEntries.reduce((sum, entry) => {
+      return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
+    }, 0);
+
     setFormData({
       ...formData,
-      storageEntries: formData.storageEntries.filter(entry => entry.id !== id)
+      storageEntries: updatedEntries,
+      quantity: totalVolume
     });
   };
 
@@ -112,9 +121,8 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
       return entry;
     });
 
-    // Automatically calculate total volume from aliquots
     const totalVolume = updatedEntries.reduce((sum, entry) => {
-      return sum + entry.aliquots.reduce((aSum, a) => aSum + (a.count * a.size), 0);
+      return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
     }, 0);
 
     setFormData({
@@ -136,7 +144,7 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
     });
 
     const totalVolume = updatedEntries.reduce((sum, entry) => {
-      return sum + entry.aliquots.reduce((aSum, a) => aSum + (a.count * a.size), 0);
+      return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
     }, 0);
 
     setFormData({
@@ -168,7 +176,7 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
                 Lot #: <span className="font-mono font-bold text-foreground">{material.lotNumber}</span>
               </p>
               <Badge variant="secondary" className="bg-primary/10 text-primary">
-                Available: {material.currentQuantity} {material.unit}
+                Available: {Number(material.currentQuantity).toLocaleString()} {material.unit}
               </Badge>
             </div>
           </div>
@@ -231,10 +239,8 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
                       min="0"
                       placeholder="0.00"
                       value={formData.quantity}
-                      onChange={(e) => handleNumericChange('quantity', e.target.value)}
-                      required 
-                      className="flex-1 bg-muted/50"
                       readOnly
+                      className="flex-1 bg-muted/50"
                     />
                     <Select 
                       value={formData.unit} 

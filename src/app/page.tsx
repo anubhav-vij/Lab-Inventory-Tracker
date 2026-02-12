@@ -144,6 +144,15 @@ export default function LabInventoryDashboard() {
     setEditingMaterial(null);
   };
 
+  const handleDeleteMaterial = (id: string) => {
+    setMaterials(prev => prev.filter(m => m.id !== id));
+    setTransactions(prev => prev.filter(t => t.materialId !== id));
+    toast({
+      title: "Material Deleted",
+      description: "The material and its history have been removed."
+    });
+  };
+
   const handleOpenTransaction = (material: Material) => {
     setActiveMaterial(material);
     setView('transaction');
@@ -171,7 +180,7 @@ export default function LabInventoryDashboard() {
       materialName: activeMaterial.name,
       lotNumber: activeMaterial.lotNumber,
       type: data.type,
-      quantity: data.quantity,
+      quantity: Number(data.quantity),
       unit: data.unit,
       timestamp: data.timestamp,
       recordedAt: new Date().toLocaleString(),
@@ -186,33 +195,40 @@ export default function LabInventoryDashboard() {
       if (m.id === activeMaterial.id) {
         const updatedEntries = JSON.parse(JSON.stringify(m.storageEntries)) as StorageEntry[];
         
-        if (data.storageEntries) {
+        if (data.storageEntries && Array.isArray(data.storageEntries)) {
           data.storageEntries.forEach(tEntry => {
             let mEntry = updatedEntries.find(e => e.location.trim() === tEntry.location.trim());
             if (mEntry) {
               tEntry.aliquots.forEach(tAliquot => {
-                let mAliquot = mEntry!.aliquots.find(a => a.size === tAliquot.size && a.unit === tAliquot.unit);
+                let mAliquot = mEntry!.aliquots.find(a => Number(a.size) === Number(tAliquot.size) && a.unit === tAliquot.unit);
                 if (mAliquot) {
                   if (data.type === 'consumption') {
-                    mAliquot.count = Math.max(0, mAliquot.count - tAliquot.count);
+                    mAliquot.count = Math.max(0, Number(mAliquot.count) - Number(tAliquot.count));
                   } else if (data.type === 'addition') {
-                    mAliquot.count += tAliquot.count;
+                    mAliquot.count = Number(mAliquot.count) + Number(tAliquot.count);
                   }
                 } else if (data.type === 'addition') {
-                  mEntry!.aliquots.push({ ...tAliquot });
+                  mEntry!.aliquots.push({ 
+                    ...tAliquot, 
+                    count: Number(tAliquot.count), 
+                    size: Number(tAliquot.size) 
+                  });
                 }
               });
             } else if (data.type === 'addition') {
-              updatedEntries.push({ ...tEntry });
+              updatedEntries.push({ 
+                ...tEntry,
+                aliquots: tEntry.aliquots.map(a => ({ ...a, count: Number(a.count), size: Number(a.size) }))
+              });
             }
           });
         }
 
         const newTotal = updatedEntries.reduce((sum, entry) => {
-          return sum + entry.aliquots.reduce((aSum, a) => aSum + (a.count * a.size), 0);
+          return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
         }, 0);
 
-        return { ...m, storageEntries: updatedEntries, currentQuantity: newTotal };
+        return { ...m, storageEntries: updatedEntries, currentQuantity: Number(newTotal) };
       }
       return m;
     }));
@@ -230,17 +246,17 @@ export default function LabInventoryDashboard() {
       if (m.id === transaction.materialId) {
         const updatedEntries = JSON.parse(JSON.stringify(m.storageEntries)) as StorageEntry[];
         
-        if (transaction.storageEntries) {
+        if (transaction.storageEntries && Array.isArray(transaction.storageEntries)) {
           transaction.storageEntries.forEach(tEntry => {
             let mEntry = updatedEntries.find(e => e.location.trim() === tEntry.location.trim());
             if (mEntry) {
               tEntry.aliquots.forEach(tAliquot => {
-                let mAliquot = mEntry!.aliquots.find(a => a.size === tAliquot.size && a.unit === tAliquot.unit);
+                let mAliquot = mEntry!.aliquots.find(a => Number(a.size) === Number(tAliquot.size) && a.unit === tAliquot.unit);
                 if (mAliquot) {
                   if (transaction.type === 'consumption') {
-                    mAliquot.count += tAliquot.count;
+                    mAliquot.count = Number(mAliquot.count) + Number(tAliquot.count);
                   } else if (transaction.type === 'addition') {
-                    mAliquot.count = Math.max(0, mAliquot.count - tAliquot.count);
+                    mAliquot.count = Math.max(0, Number(mAliquot.count) - Number(tAliquot.count));
                   }
                 }
               });
@@ -249,10 +265,10 @@ export default function LabInventoryDashboard() {
         }
 
         const newTotal = updatedEntries.reduce((sum, entry) => {
-          return sum + entry.aliquots.reduce((aSum, a) => aSum + (a.count * a.size), 0);
+          return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
         }, 0);
 
-        return { ...m, storageEntries: updatedEntries, currentQuantity: newTotal };
+        return { ...m, storageEntries: updatedEntries, currentQuantity: Number(newTotal) };
       }
       return m;
     }));
@@ -355,6 +371,7 @@ export default function LabInventoryDashboard() {
               materials={filteredMaterials} 
               onAddTransaction={handleOpenTransaction}
               onEdit={handleEditMaterial}
+              onDelete={handleDeleteMaterial}
               onViewDetails={() => {}}
             />
           </TabsContent>

@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, ArrowRightLeft, Thermometer, MapPin, Edit2, Layers } from "lucide-react";
+import { MoreHorizontal, ArrowRightLeft, Thermometer, MapPin, Edit2, Layers, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +21,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
 interface MaterialTableProps {
@@ -28,9 +39,10 @@ interface MaterialTableProps {
   onAddTransaction: (material: Material) => void;
   onEdit: (material: Material) => void;
   onViewDetails: (material: Material) => void;
+  onDelete: (id: string) => void;
 }
 
-export function MaterialTable({ materials, onAddTransaction, onEdit, onViewDetails }: MaterialTableProps) {
+export function MaterialTable({ materials, onAddTransaction, onEdit, onViewDetails, onDelete }: MaterialTableProps) {
   return (
     <div className="rounded-md border bg-card">
       <Table>
@@ -116,7 +128,7 @@ export function MaterialTable({ materials, onAddTransaction, onEdit, onViewDetai
                       "font-bold text-base",
                       isDepleted ? "text-destructive animate-pulse" : "text-foreground"
                     )}>
-                      {m.currentQuantity} {m.unit}
+                      {Number(m.currentQuantity).toLocaleString()} {m.unit}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -140,6 +152,32 @@ export function MaterialTable({ materials, onAddTransaction, onEdit, onViewDetai
                           <ArrowRightLeft className="mr-2 h-4 w-4" />
                           Record Transaction
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete Material
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Material?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to remove "{m.name}" (Lot: {m.lotNumber}) from the inventory? This will also remove associated transaction history.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => onDelete(m.id)}
+                                className="bg-destructive hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
