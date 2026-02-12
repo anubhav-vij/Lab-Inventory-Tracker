@@ -69,17 +69,26 @@ export function ExportDialog({ open, onOpenChange, materials, transactions }: Ex
   };
 
   const handleExportTransactions = () => {
-    const data = transactions.map(t => ({
-      'Date': t.timestamp,
-      'Material': t.materialName,
-      'Lot Number': t.lotNumber,
-      'Type': t.type,
-      'Quantity': t.quantity,
-      'Unit': t.unit,
-      'Recipient': t.recipient,
-      'Recorded At': t.recordedAt,
-      'Notes': t.notes || ''
-    }));
+    const data = transactions.map(t => {
+      // Flatten all aliquots from all storage entries involved in the transaction
+      const aliquotsInvolved = (t.storageEntries || [])
+        .flatMap(entry => entry.aliquots || [])
+        .map(a => `${a.count} x ${a.size} ${a.unit}`)
+        .join('; ');
+
+      return {
+        'Date': t.timestamp,
+        'Material': t.materialName,
+        'Lot Number': t.lotNumber,
+        'Type': t.type,
+        'Quantity': t.quantity,
+        'Unit': t.unit,
+        'Recipient': t.recipient,
+        'Aliquots Involved': aliquotsInvolved,
+        'Recorded At': t.recordedAt,
+        'Notes': t.notes || ''
+      };
+    });
     exportToCsv(data, `lab_transactions_${new Date().toISOString().split('T')[0]}.csv`);
     onOpenChange(false);
   };
