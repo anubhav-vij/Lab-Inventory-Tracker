@@ -2,7 +2,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, ArrowUpRight, Activity, AlertTriangle } from "lucide-react";
+import { Package, ArrowUpRight, Activity } from "lucide-react";
 import { Material, Transaction } from "@/app/lib/types";
 
 interface InventorySummaryProps {
@@ -12,7 +12,6 @@ interface InventorySummaryProps {
 
 export function InventorySummary({ materials, transactions }: InventorySummaryProps) {
   const totalItems = materials.length;
-  const depletedItems = materials.filter(m => m.currentQuantity === 0).length;
   
   // Calculate materials added in the last 7 days
   const recentAdditions = materials.filter(m => {
@@ -28,7 +27,7 @@ export function InventorySummary({ materials, transactions }: InventorySummaryPr
   const dailyTransactions = transactions.filter(t => t.timestamp === todayStr).length;
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Materials</CardTitle>
@@ -37,16 +36,6 @@ export function InventorySummary({ materials, transactions }: InventorySummaryPr
         <CardContent>
           <div className="text-2xl font-bold">{totalItems}</div>
           <p className="text-xs text-muted-foreground">In active inventory</p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Low/No Stock</CardTitle>
-          <AlertTriangle className="h-4 w-4 text-destructive" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{depletedItems}</div>
-          <p className="text-xs text-muted-foreground">Items at 0 quantity</p>
         </CardContent>
       </Card>
       <Card>
