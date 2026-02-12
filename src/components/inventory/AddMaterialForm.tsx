@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -44,19 +45,25 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
 
   const isEditing = !!initialData;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Final recalculation of currentQuantity to ensure accuracy
+  // Recalculate currentQuantity whenever storageEntries change
+  React.useEffect(() => {
     const totalVolume = formData.storageEntries.reduce((sum, entry) => {
       return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
     }, 0);
+    
+    if (totalVolume !== formData.currentQuantity) {
+      setFormData(prev => ({ ...prev, currentQuantity: totalVolume }));
+    }
+  }, [formData.storageEntries]);
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
     const dataToSave = {
       ...formData,
-      currentQuantity: totalVolume,
       submittedVolume: Number(formData.submittedVolume),
-      retainAmount: Number(formData.retainAmount)
+      retainAmount: Number(formData.retainAmount),
+      currentQuantity: Number(formData.currentQuantity)
     };
 
     if (isEditing) {
@@ -118,48 +125,34 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
       sanitizedValue = Math.max(0, parseFloat(value) || 0);
     }
     
-    const updatedEntries = formData.storageEntries.map(entry => {
-      if (entry.id === entryId) {
-        return {
-          ...entry,
-          aliquots: entry.aliquots.map(a => 
-            a.id === aliquotId ? { ...a, [field]: sanitizedValue } : a
-          )
-        };
-      }
-      return entry;
-    });
-
-    const totalVolume = updatedEntries.reduce((sum, entry) => {
-      return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
-    }, 0);
-
     setFormData({
       ...formData,
-      storageEntries: updatedEntries,
-      currentQuantity: totalVolume
+      storageEntries: formData.storageEntries.map(entry => {
+        if (entry.id === entryId) {
+          return {
+            ...entry,
+            aliquots: entry.aliquots.map(a => 
+              a.id === aliquotId ? { ...a, [field]: sanitizedValue } : a
+            )
+          };
+        }
+        return entry;
+      })
     });
   };
 
   const removeAliquotFromEntry = (entryId: string, aliquotId: string) => {
-    const updatedEntries = formData.storageEntries.map(entry => {
-      if (entry.id === entryId) {
-        return {
-          ...entry,
-          aliquots: entry.aliquots.filter(a => a.id !== aliquotId)
-        };
-      }
-      return entry;
-    });
-
-    const totalVolume = updatedEntries.reduce((sum, entry) => {
-      return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
-    }, 0);
-
     setFormData({
       ...formData,
-      storageEntries: updatedEntries,
-      currentQuantity: totalVolume
+      storageEntries: formData.storageEntries.map(entry => {
+        if (entry.id === entryId) {
+          return {
+            ...entry,
+            aliquots: entry.aliquots.filter(a => a.id !== aliquotId)
+          };
+        }
+        return entry;
+      })
     });
   };
 
@@ -253,8 +246,8 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Storage & Aliquots</CardTitle>
-                <CardDescription>Map specific aliquots to their storage locations.</CardDescription>
+                <CardTitle>Storage & Aliquots Mapping</CardTitle>
+                <CardDescription>Map specific aliquots to their storage locations. Available quantity is calculated from these values.</CardDescription>
               </div>
               <Button type="button" variant="outline" size="sm" onClick={addStorageEntry}>
                 <MapPin className="h-4 w-4 mr-2" /> Add Location
@@ -424,7 +417,7 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="currentQty">Available Volume (Current)</Label>
+                  <Label htmlFor="currentQty">Available Volume (Calculated from Aliquots)</Label>
                   <div className="flex gap-2">
                     <Input 
                       id="currentQty" 
@@ -432,9 +425,8 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
                       step="0.01" 
                       min="0"
                       value={formData.currentQuantity}
-                      onChange={(e) => handleNumericChange('currentQuantity', e.target.value)}
-                      required
-                      className="flex-1"
+                      readOnly
+                      className="flex-1 bg-muted/50 cursor-not-allowed font-bold text-primary"
                     />
                     <div className="w-[110px] flex items-center px-3 text-sm text-muted-foreground bg-muted rounded-md border">
                       {formData.unit}

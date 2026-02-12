@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -44,6 +45,17 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
     notes: ""
   });
 
+  // Recalculate quantity whenever storageEntries change
+  React.useEffect(() => {
+    const totalVolume = formData.storageEntries.reduce((sum, entry) => {
+      return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
+    }, 0);
+    
+    if (totalVolume !== formData.quantity) {
+      setFormData(prev => ({ ...prev, quantity: totalVolume }));
+    }
+  }, [formData.storageEntries]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
@@ -74,15 +86,9 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
   };
 
   const removeStorageEntry = (id: string) => {
-    const updatedEntries = formData.storageEntries.filter(entry => entry.id !== id);
-    const totalVolume = updatedEntries.reduce((sum, entry) => {
-      return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
-    }, 0);
-
     setFormData({
       ...formData,
-      storageEntries: updatedEntries,
-      quantity: totalVolume
+      storageEntries: formData.storageEntries.filter(entry => entry.id !== id)
     });
   };
 
@@ -109,54 +115,36 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
     if (field === 'count' || field === 'size') {
       sanitizedValue = Math.max(0, parseFloat(value) || 0);
     }
-    const updatedEntries = formData.storageEntries.map(entry => {
-      if (entry.id === entryId) {
-        return {
-          ...entry,
-          aliquots: entry.aliquots.map(a => 
-            a.id === aliquotId ? { ...a, [field]: sanitizedValue } : a
-          )
-        };
-      }
-      return entry;
-    });
-
-    const totalVolume = updatedEntries.reduce((sum, entry) => {
-      return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
-    }, 0);
-
+    
     setFormData({
       ...formData,
-      storageEntries: updatedEntries,
-      quantity: totalVolume
+      storageEntries: formData.storageEntries.map(entry => {
+        if (entry.id === entryId) {
+          return {
+            ...entry,
+            aliquots: entry.aliquots.map(a => 
+              a.id === aliquotId ? { ...a, [field]: sanitizedValue } : a
+            )
+          };
+        }
+        return entry;
+      })
     });
   };
 
   const removeAliquotFromEntry = (entryId: string, aliquotId: string) => {
-    const updatedEntries = formData.storageEntries.map(entry => {
-      if (entry.id === entryId) {
-        return {
-          ...entry,
-          aliquots: entry.aliquots.filter(a => a.id !== aliquotId)
-        };
-      }
-      return entry;
-    });
-
-    const totalVolume = updatedEntries.reduce((sum, entry) => {
-      return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
-    }, 0);
-
     setFormData({
       ...formData,
-      storageEntries: updatedEntries,
-      quantity: totalVolume
+      storageEntries: formData.storageEntries.map(entry => {
+        if (entry.id === entryId) {
+          return {
+            ...entry,
+            aliquots: entry.aliquots.filter(a => a.id !== aliquotId)
+          };
+        }
+        return entry;
+      })
     });
-  };
-
-  const handleNumericChange = (field: string, value: string) => {
-    const parsed = parseFloat(value) || 0;
-    setFormData(prev => ({ ...prev, [field]: Math.max(0, parsed) }));
   };
 
   return (
@@ -230,7 +218,7 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="volume">Total Transaction Volume</Label>
+                  <Label htmlFor="volume">Total Transaction Volume (Calculated)</Label>
                   <div className="flex gap-2">
                     <Input 
                       id="volume" 
@@ -240,7 +228,7 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
                       placeholder="0.00"
                       value={formData.quantity}
                       readOnly
-                      className="flex-1 bg-muted/50"
+                      className="flex-1 bg-muted/50 cursor-not-allowed font-bold"
                     />
                     <Select 
                       value={formData.unit} 
@@ -254,7 +242,7 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
                       </SelectContent>
                     </Select>
                   </div>
-                  <p className="text-[10px] text-muted-foreground italic">Calculated automatically from aliquots below.</p>
+                  <p className="text-[10px] text-muted-foreground italic">Calculated automatically from the mappings below.</p>
                 </div>
               </div>
             </CardContent>
@@ -264,7 +252,7 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Storage & Aliquots Involved</CardTitle>
-                <CardDescription>Specify which specific aliquots are being moved or issued.</CardDescription>
+                <CardDescription>Specify which specific aliquots are being moved or issued from storage.</CardDescription>
               </div>
               <Button type="button" variant="outline" size="sm" onClick={addStorageEntry}>
                 <MapPin className="h-4 w-4 mr-2" /> Add Location Mapping
