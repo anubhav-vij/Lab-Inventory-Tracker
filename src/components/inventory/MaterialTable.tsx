@@ -41,6 +41,8 @@ export function MaterialTable({ materials, onAddTransaction, onEdit, onViewDetai
             <TableHead>Mapped Storage & Aliquots</TableHead>
             <TableHead>Lot #</TableHead>
             <TableHead>Condition</TableHead>
+            <TableHead className="text-right">Submitted Vol</TableHead>
+            <TableHead className="text-right">Retain</TableHead>
             <TableHead className="text-right">Available Quantity</TableHead>
             <TableHead className="w-[100px]"></TableHead>
           </TableRow>
@@ -48,7 +50,7 @@ export function MaterialTable({ materials, onAddTransaction, onEdit, onViewDetai
         <TableBody>
           {materials.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center h-32 text-muted-foreground">
+              <TableCell colSpan={9} className="text-center h-32 text-muted-foreground">
                 No materials found. Add your first material to get started.
               </TableCell>
             </TableRow>
@@ -106,12 +108,22 @@ export function MaterialTable({ materials, onAddTransaction, onEdit, onViewDetai
                   </TableCell>
                   <TableCell className="font-mono text-xs">{m.lotNumber}</TableCell>
                   <TableCell>
-                    <div className="flex items-center text-sm">
+                    <div className="flex items-center text-sm whitespace-nowrap">
                       <Thermometer className="h-3 w-3 mr-1 text-muted-foreground" />
                       {m.storageCondition}
                     </div>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right whitespace-nowrap">
+                    <span className="text-muted-foreground text-xs">
+                      {Number(m.submittedVolume).toLocaleString()} {m.unit}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right whitespace-nowrap">
+                    <span className="text-muted-foreground text-xs">
+                      {Number(m.retainAmount).toLocaleString()} {m.retainUnit}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right whitespace-nowrap">
                     <span className={cn(
                       "font-bold text-base",
                       isDepleted ? "text-destructive animate-pulse" : "text-foreground"
