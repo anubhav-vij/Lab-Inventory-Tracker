@@ -6,6 +6,7 @@ import { InventorySummary } from "@/components/inventory/InventorySummary";
 import { MaterialTable } from "@/components/inventory/MaterialTable";
 import { AddMaterialForm } from "@/components/inventory/AddMaterialForm";
 import { TransactionForm } from "@/components/inventory/TransactionForm";
+import { ExportDialog } from "@/components/inventory/ExportDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -83,6 +84,7 @@ export default function LabInventoryDashboard() {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [activeMaterial, setActiveMaterial] = React.useState<Material | null>(null);
   const [editingMaterial, setEditingMaterial] = React.useState<Material | null>(null);
+  const [isExportDialogOpen, setIsExportDialogOpen] = React.useState(false);
   const { toast } = useToast();
 
   React.useEffect(() => {
@@ -329,7 +331,7 @@ export default function LabInventoryDashboard() {
             <Button variant="outline">
               <FileUp className="mr-2 h-4 w-4" /> Import Excel
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => setIsExportDialogOpen(true)}>
               <FileDown className="mr-2 h-4 w-4" /> Export Report
             </Button>
             <Button onClick={() => setView('add')} className="bg-primary hover:bg-primary/90">
@@ -490,6 +492,13 @@ export default function LabInventoryDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+      
+      <ExportDialog 
+        open={isExportDialogOpen} 
+        onOpenChange={setIsExportDialogOpen} 
+        materials={materials} 
+        transactions={transactions} 
+      />
     </div>
   );
 }
