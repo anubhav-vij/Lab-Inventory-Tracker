@@ -202,7 +202,7 @@ export function AddMaterialDialog({ onSave }: AddMaterialDialogProps) {
                     <SelectItem value="4°C Fridge">4°C Fridge</SelectItem>
                     <SelectItem value="-20°C Freezer">-20°C Freezer</SelectItem>
                     <SelectItem value="-80°C Freezer">-80°C Freezer</SelectItem>
-                    <SelectItem value="Dessicator">Dessicator</SelectItem>
+                    <SelectItem value="LN2">LN2</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
