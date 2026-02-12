@@ -345,7 +345,7 @@ export default function LabInventoryDashboard() {
             <TabsList className="bg-muted/50">
               <TabsTrigger value="inventory" className="flex items-center gap-2">
                 <Database className="h-4 w-4" />
-                Current Inventory
+                Material Inventory
               </TabsTrigger>
               <TabsTrigger value="history" className="flex items-center gap-2">
                 <History className="h-4 w-4" />
