@@ -11,8 +11,8 @@ interface SmartInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   onValueChange?: (value: string) => void;
 }
 
-export function SmartInput({ fieldName, className, onValueChange, ...props }: SmartInputProps) {
-  const [value, setValue] = React.useState(props.defaultValue?.toString() || "");
+export function SmartInput({ fieldName, className, onValueChange, defaultValue, ...props }: SmartInputProps) {
+  const [value, setValue] = React.useState(defaultValue?.toString() || "");
   const [suggestions, setSuggestions] = React.useState<string[]>([]);
   const [isValid, setIsValid] = React.useState<boolean | null>(null);
   const [loading, setLoading] = React.useState(false);
