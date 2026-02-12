@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -185,17 +184,14 @@ export default function LabInventoryDashboard() {
 
     setMaterials(prev => prev.map(m => {
       if (m.id === activeMaterial.id) {
-        // Deep copy of material storage entries to avoid mutations
         const updatedEntries = JSON.parse(JSON.stringify(m.storageEntries)) as StorageEntry[];
         
         if (data.storageEntries && Array.isArray(data.storageEntries)) {
           data.storageEntries.forEach(tEntry => {
-            // Find existing storage location in material
             let mEntry = updatedEntries.find(e => e.location.trim() === tEntry.location.trim());
             
             if (mEntry) {
               tEntry.aliquots.forEach(tAliquot => {
-                // Find existing aliquot set by size and unit
                 let mAliquot = mEntry!.aliquots.find(a => 
                   Number(a.size) === Number(tAliquot.size) && a.unit === tAliquot.unit
                 );
@@ -207,20 +203,21 @@ export default function LabInventoryDashboard() {
                     mAliquot.count = Number(mAliquot.count) + Number(tAliquot.count);
                   }
                 } else if (data.type === 'addition') {
-                  // If adding a new aliquot size/unit to an existing location
                   mEntry!.aliquots.push({ 
                     ...tAliquot, 
+                    id: Math.random().toString(36).substr(2, 9),
                     count: Number(tAliquot.count), 
                     size: Number(tAliquot.size) 
                   });
                 }
               });
             } else if (data.type === 'addition') {
-              // If adding a completely new storage location during transaction
               updatedEntries.push({ 
                 ...tEntry,
+                id: Math.random().toString(36).substr(2, 9),
                 aliquots: tEntry.aliquots.map(a => ({ 
                   ...a, 
+                  id: Math.random().toString(36).substr(2, 9),
                   count: Number(a.count), 
                   size: Number(a.size) 
                 }))
@@ -229,7 +226,6 @@ export default function LabInventoryDashboard() {
           });
         }
 
-        // Recalculate total currentQuantity from updated entries
         const newTotal = updatedEntries.reduce((sum, entry) => {
           return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
         }, 0);
@@ -261,7 +257,6 @@ export default function LabInventoryDashboard() {
                   Number(a.size) === Number(tAliquot.size) && a.unit === tAliquot.unit
                 );
                 if (mAliquot) {
-                  // Reverse the operation
                   if (transaction.type === 'consumption') {
                     mAliquot.count = Number(mAliquot.count) + Number(tAliquot.count);
                   } else if (transaction.type === 'addition') {
@@ -273,7 +268,6 @@ export default function LabInventoryDashboard() {
           });
         }
 
-        // Recalculate total currentQuantity
         const newTotal = updatedEntries.reduce((sum, entry) => {
           return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
         }, 0);
@@ -355,7 +349,7 @@ export default function LabInventoryDashboard() {
               </TabsTrigger>
               <TabsTrigger value="history" className="flex items-center gap-2">
                 <History className="h-4 w-4" />
-                Audit Trail
+                Transactions
               </TabsTrigger>
             </TabsList>
 
