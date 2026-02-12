@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -13,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { calculateTotalFromEntries } from "@/app/lib/units";
+import { calculateTotalFromEntries, convertToUnit } from "@/app/lib/units";
 import { ArrowLeft, Plus, X, FlaskConical, Trash2, Save, MapPin, Layers } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
@@ -45,14 +46,16 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
 
   const isEditing = !!initialData;
 
-  // Recalculate currentQuantity whenever storageEntries change
+  // Recalculate currentQuantity whenever storageEntries or retain changes
   React.useEffect(() => {
     const totalVolume = calculateTotalFromEntries(formData.storageEntries, formData.unit as MaterialUnit);
+    const retainInMasterUnit = convertToUnit(formData.retainAmount, formData.retainUnit as MaterialUnit, formData.unit as MaterialUnit);
+    const availableVolume = Math.max(0, totalVolume - retainInMasterUnit);
     
-    if (totalVolume !== formData.currentQuantity) {
-      setFormData(prev => ({ ...prev, currentQuantity: totalVolume }));
+    if (availableVolume !== formData.currentQuantity) {
+      setFormData(prev => ({ ...prev, currentQuantity: availableVolume }));
     }
-  }, [formData.storageEntries, formData.unit]);
+  }, [formData.storageEntries, formData.unit, formData.retainAmount, formData.retainUnit]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -245,7 +248,7 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Storage & Aliquots Mapping</CardTitle>
-                <CardDescription>Map specific aliquots to their storage locations. Available quantity is calculated from these values.</CardDescription>
+                <CardDescription>Map specific aliquots to their storage locations. Total volume is calculated from these values.</CardDescription>
               </div>
               <Button type="button" variant="outline" size="sm" onClick={addStorageEntry}>
                 <MapPin className="h-4 w-4 mr-2" /> Add Location
@@ -415,7 +418,7 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="currentQty">Available Volume (Calculated from Aliquots)</Label>
+                  <Label htmlFor="currentQty">Available Volume (Aliquots - Retain)</Label>
                   <div className="flex gap-2">
                     <Input 
                       id="currentQty" 

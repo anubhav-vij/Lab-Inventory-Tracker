@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -10,7 +11,7 @@ import { ExportDialog } from "@/components/inventory/ExportDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { calculateTotalFromEntries } from "@/app/lib/units";
+import { calculateTotalFromEntries, convertToUnit } from "@/app/lib/units";
 import { 
   FileDown, 
   FileUp, 
@@ -71,7 +72,7 @@ const MOCK_MATERIALS: Material[] = [
     unit: "mL",
     retainAmount: 10,
     retainUnit: "mL",
-    currentQuantity: 65,
+    currentQuantity: 55,
     labelInfo: "Handle with care",
     notes: "High purity batch"
   }
@@ -229,9 +230,11 @@ export default function LabInventoryDashboard() {
           });
         }
 
-        const newTotal = calculateTotalFromEntries(updatedEntries, m.unit as MaterialUnit);
+        const newTotalAliquots = calculateTotalFromEntries(updatedEntries, m.unit as MaterialUnit);
+        const retainInMasterUnit = convertToUnit(m.retainAmount, m.retainUnit as MaterialUnit, m.unit as MaterialUnit);
+        const newAvailable = Math.max(0, newTotalAliquots - retainInMasterUnit);
 
-        return { ...m, storageEntries: updatedEntries, currentQuantity: Number(newTotal) };
+        return { ...m, storageEntries: updatedEntries, currentQuantity: Number(newAvailable) };
       }
       return m;
     }));
@@ -269,9 +272,11 @@ export default function LabInventoryDashboard() {
           });
         }
 
-        const newTotal = calculateTotalFromEntries(updatedEntries, m.unit as MaterialUnit);
+        const newTotalAliquots = calculateTotalFromEntries(updatedEntries, m.unit as MaterialUnit);
+        const retainInMasterUnit = convertToUnit(m.retainAmount, m.retainUnit as MaterialUnit, m.unit as MaterialUnit);
+        const newAvailable = Math.max(0, newTotalAliquots - retainInMasterUnit);
 
-        return { ...m, storageEntries: updatedEntries, currentQuantity: Number(newTotal) };
+        return { ...m, storageEntries: updatedEntries, currentQuantity: Number(newAvailable) };
       }
       return m;
     }));
