@@ -10,6 +10,7 @@ import { ExportDialog } from "@/components/inventory/ExportDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { calculateTotalFromEntries } from "@/app/lib/units";
 import { 
   FileDown, 
   FileUp, 
@@ -228,9 +229,7 @@ export default function LabInventoryDashboard() {
           });
         }
 
-        const newTotal = updatedEntries.reduce((sum, entry) => {
-          return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
-        }, 0);
+        const newTotal = calculateTotalFromEntries(updatedEntries, m.unit as MaterialUnit);
 
         return { ...m, storageEntries: updatedEntries, currentQuantity: Number(newTotal) };
       }
@@ -270,9 +269,7 @@ export default function LabInventoryDashboard() {
           });
         }
 
-        const newTotal = updatedEntries.reduce((sum, entry) => {
-          return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
-        }, 0);
+        const newTotal = calculateTotalFromEntries(updatedEntries, m.unit as MaterialUnit);
 
         return { ...m, storageEntries: updatedEntries, currentQuantity: Number(newTotal) };
       }

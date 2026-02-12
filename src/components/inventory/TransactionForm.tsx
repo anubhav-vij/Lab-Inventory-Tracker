@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -14,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { calculateTotalFromEntries } from "@/app/lib/units";
 import { ArrowLeft, Plus, Trash2, Save, History, MapPin, Layers, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -47,14 +47,12 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
 
   // Recalculate quantity whenever storageEntries change
   React.useEffect(() => {
-    const totalVolume = formData.storageEntries.reduce((sum, entry) => {
-      return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
-    }, 0);
+    const totalVolume = calculateTotalFromEntries(formData.storageEntries, formData.unit as MaterialUnit);
     
     if (totalVolume !== formData.quantity) {
       setFormData(prev => ({ ...prev, quantity: totalVolume }));
     }
-  }, [formData.storageEntries]);
+  }, [formData.storageEntries, formData.unit]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -223,7 +221,7 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
                     <Input 
                       id="volume" 
                       type="number" 
-                      step="0.01" 
+                      step="0.0001" 
                       min="0"
                       placeholder="0.00"
                       value={formData.quantity}
@@ -320,7 +318,7 @@ export function TransactionForm({ material, onSave, onCancel }: TransactionFormP
                           <Label className="text-[10px]">Size</Label>
                           <Input 
                             type="number" 
-                            step="0.01" 
+                            step="0.0001" 
                             min="0"
                             className="h-8 text-xs"
                             value={aliquot.size}

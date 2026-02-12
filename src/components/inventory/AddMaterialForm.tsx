@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -14,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { calculateTotalFromEntries } from "@/app/lib/units";
 import { ArrowLeft, Plus, X, FlaskConical, Trash2, Save, MapPin, Layers } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
@@ -47,14 +47,12 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
 
   // Recalculate currentQuantity whenever storageEntries change
   React.useEffect(() => {
-    const totalVolume = formData.storageEntries.reduce((sum, entry) => {
-      return sum + entry.aliquots.reduce((aSum, a) => aSum + (Number(a.count) * Number(a.size)), 0);
-    }, 0);
+    const totalVolume = calculateTotalFromEntries(formData.storageEntries, formData.unit as MaterialUnit);
     
     if (totalVolume !== formData.currentQuantity) {
       setFormData(prev => ({ ...prev, currentQuantity: totalVolume }));
     }
-  }, [formData.storageEntries]);
+  }, [formData.storageEntries, formData.unit]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -315,7 +313,7 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
                           <Label className="text-[10px]">Size</Label>
                           <Input 
                             type="number" 
-                            step="0.01" 
+                            step="0.0001" 
                             min="0"
                             className="h-8 text-xs"
                             value={aliquot.size}
@@ -422,7 +420,7 @@ export function AddMaterialForm({ onSave, onCancel, initialData }: AddMaterialFo
                     <Input 
                       id="currentQty" 
                       type="number" 
-                      step="0.01" 
+                      step="0.0001" 
                       min="0"
                       value={formData.currentQuantity}
                       readOnly
