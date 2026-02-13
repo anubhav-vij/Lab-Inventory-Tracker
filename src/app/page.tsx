@@ -1,0 +1,576 @@
+"use client";
+
+import * as React from "react";
+import { Material, Transaction, TransactionType, Aliquot, StorageEntry, MaterialUnit } from "@/app/lib/types";
+import { InventorySummary } from "@/components/inventory/InventorySummary";
+import { MaterialTable } from "@/components/inventory/MaterialTable";
+import { AddMaterialForm } from "@/components/inventory/AddMaterialForm";
+import { TransactionForm } from "@/components/inventory/TransactionForm";
+import { ExportDialog } from "@/components/inventory/ExportDialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { calculateTotalFromEntries, convertToUnit } from "@/app/lib/units";
+import { 
+  fetchMaterials,
+  createMaterial,
+  updateMaterial,
+  fetchTransactions,
+  createTransaction,
+  deleteTransaction
+} from "@/app/lib/api";
+import { 
+  FileDown, 
+  FileUp, 
+  Search, 
+  History, 
+  Database,
+  FlaskConical,
+  Filter,
+  Plus,
+  User,
+  Layers,
+  MapPin,
+  Trash2
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
+const MOCK_MATERIALS: Material[] = [
+  {
+    id: "1",
+    name: "Sodium Chloride",
+    project: "Alpha-Chem",
+    lotNumber: "NaCl-2024-01",
+    storageEntries: [
+      {
+        id: "loc1",
+        location: "F81*S1*R5*B1",
+        aliquots: [
+          { id: "a1", count: 21, size: 1, unit: "mL" },
+          { id: "a2", count: 1, size: 40, unit: "mL" },
+          { id: "a3", count: 8, size: 0.5, unit: "mL" }
+        ]
+      }
+    ],
+    concentration: "Analytical Grade",
+    submissionDate: "2024-03-01",
+    storageCondition: "Ambient",
+    submittedVolume: 500,
+    unit: "mL",
+    retainAmount: 10,
+    retainUnit: "mL",
+    currentQuantity: 55,
+    labelInfo: "Handle with care",
+    notes: "High purity batch"
+  }
+];
+
+export default function LabInventoryDashboard() {
+  const [view, setView] = React.useState<'dashboard' | 'add' | 'edit' | 'transaction'>('dashboard');
+  const [materials, setMaterials] = React.useState<Material[]>([]);
+  const [transactions, setTransactions] = React.useState<Transaction[]>([]);
+  const [isLoaded, setIsLoaded] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [activeMaterial, setActiveMaterial] = React.useState<Material | null>(null);
+  const [editingMaterial, setEditingMaterial] = React.useState<Material | null>(null);
+  const [isExportDialogOpen, setIsExportDialogOpen] = React.useState(false);
+  const { toast } = useToast();
+
+  // Load data from DynamoDB on mount
+  React.useEffect(() => {
+    async function loadData() {
+      try {
+        const [materialsData, transactionsData] = await Promise.all([
+          fetchMaterials(),
+          fetchTransactions()
+        ]);
+        
+        if (materialsData.length === 0) {
+          // If no materials in DB, use mock data
+          setMaterials(MOCK_MATERIALS);
+        } else {
+          setMaterials(materialsData);
+        }
+        
+        setTransactions(transactionsData);
+        setIsLoaded(true);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        toast({
+          title: "Error Loading Data",
+          description: "Could not fetch data from database.",
+          variant: "destructive"
+        });
+        setIsLoaded(true);
+      }
+    }
+    
+    loadData();
+  }, [toast]);
+
+  const filteredMaterials = materials.filter(m => 
+    m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    m.project.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    m.lotNumber.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredTransactions = transactions.filter(t => 
+    t.materialName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    t.lotNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.recipient.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (t.notes && t.notes.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const handleSaveMaterial = async (data: Material | Omit<Material, 'id'>) => {
+    try {
+      if ('id' in data) {
+        // Update existing material
+        const updated = await updateMaterial(data as Material);
+        if (updated) {
+          setMaterials(prev => prev.map(m => m.id === data.id ? updated : m));
+          toast({
+            title: "Material Updated",
+            description: `${data.name} specifications have been saved.`
+          });
+        }
+      } else {
+        // Create new material
+        const created = await createMaterial(data);
+        if (created) {
+          setMaterials(prev => [created, ...prev]);
+          toast({
+            title: "Material Added",
+            description: `${data.name} has been successfully registered.`
+          });
+        }
+      }
+      setView('dashboard');
+      setEditingMaterial(null);
+    } catch (error) {
+      console.error('Error saving material:', error);
+      toast({
+        title: "Error",
+        description: "Could not save material.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleOpenTransaction = (material: Material) => {
+    setActiveMaterial(material);
+    setView('transaction');
+  };
+
+  const handleEditMaterial = (material: Material) => {
+    setEditingMaterial(material);
+    setView('edit');
+  };
+
+  const handleSaveTransaction = async (data: { 
+    type: TransactionType; 
+    quantity: number; 
+    unit: string;
+    timestamp: string;
+    recipient: string; 
+    storageEntries: StorageEntry[]; 
+    notes: string 
+  }) => {
+    if (!activeMaterial) return;
+
+    try {
+      const newTransactionData: Omit<Transaction, 'id'> = {
+        materialId: activeMaterial.id,
+        materialName: activeMaterial.name,
+        lotNumber: activeMaterial.lotNumber,
+        type: data.type,
+        quantity: Number(data.quantity),
+        unit: data.unit,
+        timestamp: data.timestamp,
+        recordedAt: new Date().toLocaleString(),
+        recipient: data.recipient,
+        storageEntries: data.storageEntries || [],
+        notes: data.notes
+      };
+
+      const created = await createTransaction(newTransactionData);
+      if (created) {
+        setTransactions(prev => [created, ...prev]);
+      }
+
+      // Update material quantities
+      const updatedEntries = JSON.parse(JSON.stringify(activeMaterial.storageEntries)) as StorageEntry[];
+      
+      if (data.storageEntries && Array.isArray(data.storageEntries)) {
+        data.storageEntries.forEach(tEntry => {
+          let mEntry = updatedEntries.find(e => e.location.trim() === tEntry.location.trim());
+          
+          if (mEntry) {
+            tEntry.aliquots.forEach(tAliquot => {
+              let mAliquot = mEntry!.aliquots.find(a => 
+                Number(a.size) === Number(tAliquot.size) && a.unit === tAliquot.unit
+              );
+
+              if (mAliquot) {
+                if (data.type === 'consumption') {
+                  mAliquot.count = Math.max(0, Number(mAliquot.count) - Number(tAliquot.count));
+                } else if (data.type === 'addition') {
+                  mAliquot.count = Number(mAliquot.count) + Number(tAliquot.count);
+                }
+              } else if (data.type === 'addition') {
+                mEntry!.aliquots.push({ 
+                  ...tAliquot, 
+                  id: Math.random().toString(36).substr(2, 9),
+                  count: Number(tAliquot.count), 
+                  size: Number(tAliquot.size) 
+                });
+              }
+            });
+          } else if (data.type === 'addition') {
+            updatedEntries.push({ 
+              ...tEntry,
+              id: Math.random().toString(36).substr(2, 9),
+              aliquots: tEntry.aliquots.map(a => ({ 
+                ...a, 
+                id: Math.random().toString(36).substr(2, 9),
+                count: Number(a.count), 
+                size: Number(a.size) 
+              }))
+            });
+          }
+        });
+      }
+
+      const newTotalAliquots = calculateTotalFromEntries(updatedEntries, activeMaterial.unit as MaterialUnit);
+      const retainInMasterUnit = convertToUnit(activeMaterial.retainAmount, activeMaterial.retainUnit as MaterialUnit, activeMaterial.unit as MaterialUnit);
+      const newAvailable = Math.max(0, newTotalAliquots - retainInMasterUnit);
+
+      const updatedMaterial: Material = { 
+        ...activeMaterial, 
+        storageEntries: updatedEntries, 
+        currentQuantity: Number(newAvailable) 
+      };
+
+      const saved = await updateMaterial(updatedMaterial);
+      if (saved) {
+        setMaterials(prev => prev.map(m => m.id === activeMaterial.id ? saved : m));
+      }
+
+      toast({
+        title: "Transaction Recorded",
+        description: `Stock level updated for ${activeMaterial.name}.`
+      });
+      setView('dashboard');
+      setActiveMaterial(null);
+    } catch (error) {
+      console.error('Error saving transaction:', error);
+      toast({
+        title: "Error",
+        description: "Could not record transaction.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteTransaction = async (transaction: Transaction) => {
+    try {
+      // Reverse the transaction in material quantities
+      const material = materials.find(m => m.id === transaction.materialId);
+      if (material) {
+        const updatedEntries = JSON.parse(JSON.stringify(material.storageEntries)) as StorageEntry[];
+        
+        if (transaction.storageEntries && Array.isArray(transaction.storageEntries)) {
+          transaction.storageEntries.forEach(tEntry => {
+            let mEntry = updatedEntries.find(e => e.location.trim() === tEntry.location.trim());
+            if (mEntry) {
+              tEntry.aliquots.forEach(tAliquot => {
+                let mAliquot = mEntry!.aliquots.find(a => 
+                  Number(a.size) === Number(tAliquot.size) && a.unit === tAliquot.unit
+                );
+                if (mAliquot) {
+                  if (transaction.type === 'consumption') {
+                    mAliquot.count = Number(mAliquot.count) + Number(tAliquot.count);
+                  } else if (transaction.type === 'addition') {
+                    mAliquot.count = Math.max(0, Number(mAliquot.count) - Number(tAliquot.count));
+                  }
+                }
+              });
+            }
+          });
+        }
+
+        const newTotalAliquots = calculateTotalFromEntries(updatedEntries, material.unit as MaterialUnit);
+        const retainInMasterUnit = convertToUnit(material.retainAmount, material.retainUnit as MaterialUnit, material.unit as MaterialUnit);
+        const newAvailable = Math.max(0, newTotalAliquots - retainInMasterUnit);
+
+        const updatedMaterial: Material = { 
+          ...material, 
+          storageEntries: updatedEntries, 
+          currentQuantity: Number(newAvailable) 
+        };
+
+        const saved = await updateMaterial(updatedMaterial);
+        if (saved) {
+          setMaterials(prev => prev.map(m => m.id === material.id ? saved : m));
+        }
+      }
+
+      // Delete the transaction
+      const deleted = await deleteTransaction(transaction.id);
+      if (deleted) {
+        setTransactions(prev => prev.filter(t => t.id !== transaction.id));
+        toast({
+          title: "Transaction Deleted",
+          description: "Inventory levels have been restored."
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      toast({
+        title: "Error",
+        description: "Could not delete transaction.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  if (!isLoaded) return <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="text-center">
+      <FlaskConical className="h-12 w-12 animate-pulse mx-auto mb-4 text-primary" />
+      <p className="text-muted-foreground">Loading inventory data...</p>
+    </div>
+  </div>;
+
+  if (view === 'add' || view === 'edit') {
+    return (
+      <AddMaterialForm 
+        initialData={editingMaterial || undefined}
+        onSave={handleSaveMaterial} 
+        onCancel={() => {
+          setView('dashboard');
+          setEditingMaterial(null);
+        }} 
+      />
+    );
+  }
+
+  if (view === 'transaction' && activeMaterial) {
+    return (
+      <TransactionForm 
+        material={activeMaterial}
+        onSave={handleSaveTransaction}
+        onCancel={() => {
+          setView('dashboard');
+          setActiveMaterial(null);
+        }}
+      />
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background p-6 md:p-8 font-body">
+      <div className="max-w-7xl mx-auto space-y-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-primary flex items-center gap-2">
+              <FlaskConical className="h-8 w-8" />
+              Lab Inventory Tracker
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Precision material management and audit logging system.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variant="outline">
+              <FileUp className="mr-2 h-4 w-4" /> Import Excel
+            </Button>
+            <Button variant="outline" onClick={() => setIsExportDialogOpen(true)}>
+              <FileDown className="mr-2 h-4 w-4" /> Export Report
+            </Button>
+            <Button onClick={() => setView('add')} className="bg-primary hover:bg-primary/90">
+              <Plus className="mr-2 h-4 w-4" /> Add Material
+            </Button>
+          </div>
+        </div>
+
+        <InventorySummary materials={materials} transactions={transactions} />
+
+        <Tabs defaultValue="inventory" className="w-full">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <TabsList className="bg-muted/50">
+              <TabsTrigger value="inventory" className="flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                Material Inventory
+              </TabsTrigger>
+              <TabsTrigger value="history" className="flex items-center gap-2">
+                <History className="h-4 w-4" />
+                Transactions
+              </TabsTrigger>
+            </TabsList>
+
+            <div className="flex items-center gap-2">
+              <div className="relative w-full md:w-80">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search materials, projects, lot #..."
+                  className="pl-10"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <Button variant="ghost" size="icon">
+                <Filter className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <TabsContent value="inventory" className="animate-in fade-in duration-500">
+            <MaterialTable 
+              materials={filteredMaterials} 
+              onAddTransaction={handleOpenTransaction}
+              onEdit={handleEditMaterial}
+              onViewDetails={() => {}}
+            />
+          </TabsContent>
+
+          <TabsContent value="history" className="animate-in fade-in duration-500">
+            <div className="rounded-md border bg-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Material</TableHead>
+                    <TableHead>Lot #</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Change</TableHead>
+                    <TableHead>Recipient</TableHead>
+                    <TableHead>Storage & Aliquots Involved</TableHead>
+                    <TableHead>Notes</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTransactions.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center h-32 text-muted-foreground">
+                        {searchQuery ? "No transactions match your search." : "No transactions recorded yet."}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredTransactions.map((t) => (
+                      <TableRow key={t.id}>
+                        <TableCell className="text-sm font-medium">{t.timestamp}</TableCell>
+                        <TableCell className="font-semibold">{t.materialName}</TableCell>
+                        <TableCell className="font-mono text-xs">{t.lotNumber}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={
+                              t.type === 'consumption' ? 'destructive' : 
+                              t.type === 'addition' ? 'secondary' : 'outline'
+                            }
+                            className="text-[10px] uppercase px-1.5"
+                          >
+                            {t.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {t.type === 'consumption' ? '-' : t.type === 'addition' ? '+' : ''}{t.quantity} {t.unit}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {t.recipient ? (
+                            <div className="flex items-center gap-1.5">
+                              <User className="h-3 w-3 text-muted-foreground" />
+                              {t.recipient}
+                            </div>
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-3">
+                            {t.storageEntries && t.storageEntries.length > 0 ? (
+                              t.storageEntries.map((entry) => (
+                                <div key={entry.id} className="space-y-1">
+                                  <div className="flex items-center text-[10px] font-bold text-muted-foreground">
+                                    <MapPin className="h-2.5 w-2.5 mr-1 text-primary" />
+                                    {entry.location}
+                                  </div>
+                                  <div className="pl-3.5 space-y-0.5">
+                                    {entry.aliquots.map((a, i) => (
+                                      <div key={i} className="flex items-center text-[9px] text-muted-foreground">
+                                        <Layers className="h-2 w-2 mr-1" />
+                                        {a.count} x {a.size} {a.unit}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))
+                            ) : '-'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs max-w-[150px] truncate" title={t.notes}>
+                          {t.notes || '-'}
+                        </TableCell>
+                        <TableCell>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Transaction Log?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will remove the transaction record and reverse the inventory change. 
+                                  Consumed volume will be added back, or added volume will be removed.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  onClick={() => handleDeleteTransaction(t)}
+                                >
+                                  Confirm Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+      
+      <ExportDialog 
+        open={isExportDialogOpen} 
+        onOpenChange={setIsExportDialogOpen} 
+        materials={materials} 
+        transactions={transactions} 
+      />
+    </div>
+  );
+}

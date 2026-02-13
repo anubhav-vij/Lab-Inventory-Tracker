@@ -1,0 +1,38 @@
+# This "input" configures a global authorization rule to enable public access to
+# all models in this schema. Learn more about authorization rules here: https://docs.amplify.aws/cli/graphql/authorization-rules
+input AMPLIFY { globalAuthRule: AuthRule = { allow: public } } # FOR TESTING ONLY!
+
+type Material @model {
+  id: ID!
+  name: String!
+  project: String!
+  lotNumber: String!
+  storageEntries: AWSJSON!
+  concentration: String
+  submissionDate: String!
+  storageCondition: String!
+  submittedVolume: Float!
+  unit: String!
+  retainAmount: Float!
+  retainUnit: String!
+  currentQuantity: Float!
+  labelInfo: String
+  notes: String
+  transactions: [Transaction] @hasMany(indexName: "byMaterial", fields: ["id"])
+}
+
+type Transaction @model {
+  id: ID!
+  materialId: ID! @index(name: "byMaterial", sortKeyFields: ["timestamp"])
+  materialName: String!
+  lotNumber: String!
+  type: String!
+  quantity: Float!
+  unit: String!
+  timestamp: String!
+  recordedAt: AWSDateTime!
+  recipient: String
+  storageEntries: AWSJSON!
+  notes: String
+  material: Material @belongsTo(fields: ["materialId"])
+}

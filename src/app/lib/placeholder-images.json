@@ -1,0 +1,17 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "lab-hero",
+      "description": "Scientific laboratory equipment with beakers and test tubes.",
+      "imageUrl": "https://picsum.photos/seed/lab123/1200/600",
+      "imageHint": "laboratory research"
+    },
+    {
+      "id": "material-placeholder",
+      "description": "A close-up of chemical samples.",
+      "imageUrl": "https://picsum.photos/seed/chem456/400/300",
+      "imageHint": "chemicals lab"
+    }
+  ]
+}
